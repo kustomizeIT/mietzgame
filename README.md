@@ -23,7 +23,7 @@ Einfach `index.html` auf einen Webserver hochlegen (z. B. `https://deine-webseit
 
 ## Aussehen
 
-Kustomizes Gesicht ist an das Original-Maskottchen angepasst: grüner Fellfleck über dem linken Auge bis zur Stirn, linkes Ohr grün, rechtes Ohr weiß mit grüner Kontur.
+Kustomizes Kopf stammt **direkt aus der Original-SVG** des Maskottchens (via `kustomize_head.png` als Data-URI eingebettet): exaktes Gesicht mit grünem Fellfleck über dem rechten Auge bis zur Stirn, Weißeck, Schnurrhaaren. Blinzeln/geschlossene Augen werden als Fellfarben-Überlagerung auf dem SVG-Kopf animiert.
 
 ## Animationen
 
@@ -55,7 +55,8 @@ Alternativ: `index.html` einfach in einen beliebigen Ordner der bestehenden Webs
 - `index.html` – das fertige, eigenständige Spiel (nur diese eine Datei wird benötigt)
 - `game.template.html` – Quellcode-Vorlage (Platzhalter für das Level)
 - `build.py` – generiert `index.html` aus der Vorlage (Level einbetten)
-- `mietz_small.png` – Katzen-Sprite für das Intro-Zitat (als Data-URI eingebettet)
+- `kustomize_head.png` – Kopf aus der Original-Maskottchen-SVG für die Spielfigur (als Data-URI eingebettet)
+- `kustomize_intro.png` – Original-Maskottchen für das Intro-Zitat (aus der SVG gerendert)
 - `logo_small.png` – kustomize.it-Logo für das Intro (als Data-URI eingebettet)
 
 ## Level anpassen

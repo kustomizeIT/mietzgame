@@ -104,6 +104,8 @@ const VIEW_H = 720;
 
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
+const headImg = new Image();
+headImg.src = "__HEAD_B64__";
 
 let scale = 1, viewW = 1280, worldOffY = 0;
 function resize() {
@@ -606,82 +608,36 @@ function draw() {
   ctx.restore();
 }
 
-function catHead(hx, hy, r, eyeMode, tilt) {
+function drawHead(hx, hy, r, eyeMode, tilt) {
+  const HW = r * 3.4, HH = HW * 0.5407;
   ctx.save();
   ctx.translate(hx, hy);
   if (tilt) ctx.rotate(tilt);
-  ctx.fillStyle = "#fff";
-  ctx.strokeStyle = GREEN;
-  ctx.lineWidth = 2.5;
-  ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.fill(); ctx.stroke();
-  ctx.save();
-  ctx.beginPath(); ctx.arc(0, 0, r - 1, 0, 7); ctx.clip();
-  ctx.fillStyle = GREEN;
-  ctx.beginPath();
-  ctx.ellipse(-r * 0.42, -r * 0.02, r * 0.62, r * 0.78, 0.12, 0, 7);
-  ctx.fill();
-  ctx.restore();
-  const eh = r * 0.62;
-  for (const s of [-1, 1]) {
-    const greenEar = s === -1;
-    ctx.fillStyle = greenEar ? GREEN : "#fff";
-    ctx.beginPath();
-    ctx.moveTo(s * r * 0.28, -r * 0.72);
-    ctx.lineTo(s * r * 0.82, -r - eh * 0.9);
-    ctx.lineTo(s * r * 0.88, -r * 0.38);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-    if (greenEar) {
-      ctx.fillStyle = "#cde9da";
-      ctx.beginPath();
-      ctx.moveTo(s * r * 0.44, -r * 0.68);
-      ctx.lineTo(s * r * 0.72, -r - eh * 0.45);
-      ctx.lineTo(s * r * 0.74, -r * 0.48);
-      ctx.closePath(); ctx.fill();
-    }
+  if (headImg.complete && headImg.naturalWidth) {
+    ctx.drawImage(headImg, -HW / 2, -HH / 2, HW, HH);
+  } else {
+    ctx.fillStyle = "#fff";
+    ctx.strokeStyle = GREEN;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.fill(); ctx.stroke();
   }
-  const ey = -r * 0.05, ex = r * 0.42, er = r * 0.3;
-  for (const s of [-1, 1]) {
-    if (eyeMode === 1) {
-      ctx.fillStyle = "#fff";
+  if (eyeMode !== 1) {
+    const eyes = [
+      [0.363, "#fff", HW * 0.045],
+      [0.617, GREEN, HW * 0.062]
+    ];
+    for (const [rel, skin, cr] of eyes) {
+      const ex = (rel - 0.5) * HW, ey = 0.152 * HH;
+      ctx.fillStyle = skin;
+      ctx.beginPath(); ctx.arc(ex, ey, cr, 0, 7); ctx.fill();
       ctx.strokeStyle = NAVY;
-      ctx.lineWidth = 1.6;
-      ctx.beginPath(); ctx.arc(s * ex, ey, er, 0, 7); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = NAVY;
-      ctx.beginPath(); ctx.arc(s * ex + 1, ey + 0.5, er * 0.52, 0, 7); ctx.fill();
-      ctx.fillStyle = "#fff";
-      ctx.beginPath(); ctx.arc(s * ex + 1 - er * 0.18, ey - er * 0.18, er * 0.2, 0, 7); ctx.fill();
-    } else if (eyeMode === 0) {
-      ctx.strokeStyle = NAVY;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = Math.max(1, HW * 0.024);
+      ctx.lineCap = "round";
       ctx.beginPath();
-      ctx.moveTo(s * ex - er, ey + er * 0.3);
-      ctx.quadraticCurveTo(s * ex, ey + er * 0.9, s * ex + er, ey + er * 0.3);
-      ctx.stroke();
-    } else {
-      ctx.strokeStyle = NAVY;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(s * ex - er, ey);
-      ctx.quadraticCurveTo(s * ex, ey - er * 0.9, s * ex + er, ey);
+      if (eyeMode === 2) ctx.arc(ex, ey + cr * 0.35, cr + HW * 0.012, Math.PI, 0);
+      else ctx.arc(ex, ey - cr * 0.35, cr + HW * 0.012, 0, Math.PI);
       ctx.stroke();
     }
-  }
-  ctx.fillStyle = NAVY;
-  ctx.beginPath();
-  ctx.moveTo(-2.6, r * 0.42); ctx.lineTo(2.6, r * 0.42); ctx.lineTo(0, r * 0.42 + 3); ctx.closePath(); ctx.fill();
-  ctx.strokeStyle = NAVY;
-  ctx.lineWidth = 1.4;
-  ctx.beginPath();
-  ctx.arc(-2.4, r * 0.42 + 4.4, 2.4, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(2.4, r * 0.42 + 4.4, 2.4, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
-  ctx.strokeStyle = "rgba(40,46,59,.35)";
-  ctx.lineWidth = 1.2;
-  for (const s of [-1, 1]) for (const dy of [-1, 1]) {
-    ctx.beginPath();
-    ctx.moveTo(s * r * 0.8, r * 0.3 + dy * 2.5);
-    ctx.lineTo(s * (r * 0.8 + 6), r * 0.3 + dy * 4.5);
-    ctx.stroke();
   }
   ctx.restore();
 }
@@ -755,7 +711,7 @@ function drawCat() {
     ctx.beginPath(); ctx.ellipse(-2, -10, 20, 10 + br * 6, 0, 0, 7); ctx.fill(); ctx.stroke();
     catPaw(-8, -4, 4.5, false);
     catPaw(0, -3, 4.5, false);
-    catHead(12, -15, 13, 0, 0.22);
+    drawHead(12, -15, 13, 0, 0.22);
     ctx.fillStyle = NAVY;
     ctx.font = "bold 15px Verdana, sans-serif";
     for (let i = 0; i < 3; i++) {
@@ -823,7 +779,7 @@ function drawCat() {
       ctx.beginPath(); ctx.ellipse(6, -33, 3, 2, -0.4, 0, 7); ctx.fill();
     }
   }
-  catHead(0, -48 + bob, 15, eyeMode, tilt);
+  drawHead(0, -48 + bob, 15, eyeMode, tilt);
   ctx.restore();
 }
 
