@@ -26,9 +26,8 @@ level = ["".join(r) for r in grid]
 assert all(len(r) == COLS for r in level)
 js_level = "[\n" + ",\n".join('"%s"' % r for r in level) + "\n]"
 
-b64 = base64.b64encode(open("mietz_small.png", "rb").read()).decode()
 html = open("game.template.html").read()
-assert "__LEVEL__" in html and "__MIETZ_B64__" in html
-html = html.replace("__LEVEL__", js_level).replace("__MIETZ_B64__", "data:image/png;base64," + b64)
+assert "__LEVEL__" in html
+html = html.replace("__LEVEL__", js_level)
 open("index.html", "w").write(html)
 print("index.html geschrieben:", len(html), "Bytes")

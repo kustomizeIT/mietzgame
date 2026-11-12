@@ -77,7 +77,6 @@
 
 <script>
 "use strict";
-const IMG_SRC = "__MIETZ_B64__";
 const LEVEL = __LEVEL__;
 const TILE = 48;
 const ROWS = LEVEL.length;
@@ -87,8 +86,6 @@ const VIEW_H = 720;
 
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
-const mietzImg = new Image();
-mietzImg.src = IMG_SRC;
 
 let scale = 1, viewW = 1280, worldOffY = 0;
 function resize() {
@@ -111,7 +108,7 @@ function parseLevel() {
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
     const ch = LEVEL[r][c];
     if (ch === "f") fishes.push({ x: c * TILE + TILE / 2, y: r * TILE + TILE / 2, taken: false, t: Math.random() * 6 });
-    else if (ch === "e") enemies.push({ x: c * TILE, y: r * TILE + TILE - 42, w: 46, h: 42, vx: -95, dead: 0, sq: 0 });
+    else if (ch === "e") enemies.push({ x: c * TILE, y: r * TILE + TILE - 42, w: 46, h: 42, vx: -95, dead: 0, sq: 0, home: c * TILE });
     else if (ch === "m") movers.push({ x: c * TILE - TILE, y: r * TILE, w: TILE * 3, h: 22, dir: 1, min: c * TILE - TILE - 3 * TILE, max: c * TILE - TILE + 3 * TILE, dx: 0 });
     else if (ch === "P") spawn = { x: c * TILE, y: (r + 1) * TILE - 64 };
     else if (ch === "G") goal = { x: c * TILE, y: r * TILE };
@@ -121,7 +118,8 @@ parseLevel();
 
 const player = {
   x: 0, y: 0, w: 52, h: 64, vx: 0, vy: 0, onGround: false, face: 1,
-  invuln: 0, ride: null, coyote: 0, jumpBuf: 0, anim: 0
+  invuln: 0, ride: null, coyote: 0, jumpBuf: 0, anim: 0,
+  idleTime: 0, blink: 0, nextBlink: 2, landT: 0, wasSleep: false, dust: []
 };
 let state = "start", lives = 3, score = 0, camX = 0, time = 0, confetti = [];
 
@@ -183,6 +181,14 @@ document.getElementById("startBtn").addEventListener("click", startGame);
 document.getElementById("winRestart").addEventListener("click", startGame);
 document.getElementById("overRestart").addEventListener("click", startGame);
 
+function spawnDust(n, big) {
+  for (let i = 0; i < n; i++) player.dust.push({
+    x: player.x + player.w / 2 + (Math.random() - 0.5) * 30,
+    y: player.y + player.h - 2, vx: (Math.random() - 0.5) * (big ? 160 : 60),
+    vy: -Math.random() * (big ? 90 : 40), r: (big ? 4 : 2.5) + Math.random() * 3, a: 1
+  });
+}
+
 const AC = window.AudioContext || window.webkitAudioContext;
 let audio = null;
 function beep(freq, dur, type, vol, slide) {
@@ -221,7 +227,7 @@ function collideY(e, dy) {
   e.y += dy;
   const left = Math.floor(e.x / TILE), right = Math.floor((e.x + e.w - 1) / TILE);
   if (dy > 0) {
-    const r = Math.floor((e.y + e.h - 1) / TILE);
+    const r = Math.floor((e.y + e.h) / TILE);
     for (let c = left; c <= right; c++) {
       if (solidAt(c, r) || (platAt(c, r) && prevBottom <= r * TILE + 10)) {
         e.y = r * TILE - e.h; e.vy = 0; e.onGround = true; return true;
@@ -278,9 +284,27 @@ function update(dt) {
   }
   if (!input.jump && player.vy < -500) player.vy = -500;
 
+  const moving = Math.abs(player.vx) > 40;
+  if (moving || !player.onGround) player.idleTime = 0; else player.idleTime += dt;
+  const sleeping = player.idleTime > 10;
+  if (player.wasSleep && !sleeping && player.onGround) { player.vy = -420; sJump(); }
+  player.wasSleep = sleeping;
+  player.nextBlink -= dt;
+  if (player.nextBlink <= 0) { player.blink = 0.12; player.nextBlink = 2 + Math.random() * 3.5; }
+  player.blink = Math.max(0, player.blink - dt);
+  for (const d of player.dust) { d.x += d.vx * dt; d.y += d.vy * dt; d.a -= dt * 2.5; }
+  player.dust = player.dust.filter(d => d.a > 0);
+
+  const wasAir = !player.onGround, pv = player.vy;
   player.onGround = false;
   collideX(player, player.vx * dt);
   collideY(player, player.vy * dt);
+  if (wasAir && player.onGround) {
+    player.landT = 0.22;
+    if (pv > 400) spawnDust(7, true);
+  }
+  player.landT = Math.max(0, player.landT - dt);
+  if (moving && player.onGround && Math.random() < dt * 5) spawnDust(1, false);
   player.invuln = Math.max(0, player.invuln - dt);
   player.anim += Math.abs(player.vx) * dt * 0.05;
 
@@ -303,6 +327,8 @@ function update(dt) {
     const footR = Math.floor((e.y + e.h + 6) / TILE);
     if (!solidAt(aheadC, footR) && !platAt(aheadC, footR) && e.onGround) e.vx *= -1;
     if (e.x < 0) { e.x = 0; e.vx = Math.abs(e.vx); }
+    if (e.x < e.home - 3.5 * TILE) { e.x = e.home - 3.5 * TILE; e.vx = Math.abs(e.vx); }
+    if (e.x > e.home + 3.5 * TILE) { e.x = e.home + 3.5 * TILE; e.vx = -Math.abs(e.vx); }
 
     if (pRect.x < e.x + e.w && pRect.x + pRect.w > e.x && pRect.y < e.y + e.h && pRect.y + pRect.h > e.y) {
       if (player.vy > 150 && player.y + player.h - e.y < 40) {
@@ -472,20 +498,11 @@ function draw() {
 
   if (goal) drawGoal();
 
-  if (mietzImg.complete && mietzImg.naturalWidth) {
-    const p = player;
-    const flick = p.invuln > 0 && Math.floor(time * 14) % 2 === 0;
-    if (!flick) {
-      const stretch = !p.onGround ? Math.max(-0.12, Math.min(0.15, p.vy / 4000)) : Math.sin(p.anim) * 0.04;
-      const sw = p.w * (1 - stretch), sh = p.h * (1 + stretch);
-      ctx.save();
-      ctx.translate(p.x + p.w / 2, p.y + p.h);
-      ctx.rotate(p.onGround ? Math.sin(p.anim * 0.7) * 0.03 : Math.max(-0.12, Math.min(0.12, p.vx / 3200)));
-      if (p.face === -1) ctx.scale(-1, 1);
-      ctx.drawImage(mietzImg, -sw / 2, -sh, sw, sh);
-      ctx.restore();
-    }
+  for (const d of player.dust) {
+    ctx.fillStyle = "rgba(255,255,255," + Math.max(0, d.a) * 0.8 + ")";
+    ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, 7); ctx.fill();
   }
+  drawCat();
 
   for (const c of confetti) {
     ctx.save();
@@ -495,6 +512,219 @@ function draw() {
     ctx.fillRect(-c.r, -c.r / 2, c.r * 2, c.r);
     ctx.restore();
   }
+  ctx.restore();
+}
+
+function catHead(hx, hy, r, eyeMode, tilt) {
+  ctx.save();
+  ctx.translate(hx, hy);
+  if (tilt) ctx.rotate(tilt);
+  ctx.fillStyle = "#fff";
+  ctx.strokeStyle = GREEN;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.fill(); ctx.stroke();
+  const eh = r * 0.62;
+  for (const s of [-1, 1]) {
+    ctx.fillStyle = GREEN;
+    ctx.beginPath();
+    ctx.moveTo(s * r * 0.28, -r * 0.72);
+    ctx.lineTo(s * r * 0.82, -r - eh * 0.9);
+    ctx.lineTo(s * r * 0.88, -r * 0.38);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#cde9da";
+    ctx.beginPath();
+    ctx.moveTo(s * r * 0.44, -r * 0.68);
+    ctx.lineTo(s * r * 0.72, -r - eh * 0.45);
+    ctx.lineTo(s * r * 0.74, -r * 0.48);
+    ctx.closePath(); ctx.fill();
+  }
+  const ey = -r * 0.05, ex = r * 0.42, er = r * 0.3;
+  for (const s of [-1, 1]) {
+    if (eyeMode === 1) {
+      ctx.fillStyle = "#fff";
+      ctx.strokeStyle = NAVY;
+      ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.arc(s * ex, ey, er, 0, 7); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = NAVY;
+      ctx.beginPath(); ctx.arc(s * ex + 1, ey + 0.5, er * 0.52, 0, 7); ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.beginPath(); ctx.arc(s * ex + 1 - er * 0.18, ey - er * 0.18, er * 0.2, 0, 7); ctx.fill();
+    } else if (eyeMode === 0) {
+      ctx.strokeStyle = NAVY;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(s * ex - er, ey + er * 0.3);
+      ctx.quadraticCurveTo(s * ex, ey + er * 0.9, s * ex + er, ey + er * 0.3);
+      ctx.stroke();
+    } else {
+      ctx.strokeStyle = NAVY;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(s * ex - er, ey);
+      ctx.quadraticCurveTo(s * ex, ey - er * 0.9, s * ex + er, ey);
+      ctx.stroke();
+    }
+  }
+  ctx.fillStyle = "rgba(140,201,165,.55)";
+  ctx.beginPath(); ctx.ellipse(-r * 0.62, r * 0.28, r * 0.2, r * 0.15, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = NAVY;
+  ctx.beginPath();
+  ctx.moveTo(-2.6, r * 0.42); ctx.lineTo(2.6, r * 0.42); ctx.lineTo(0, r * 0.42 + 3); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = NAVY;
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.arc(-2.4, r * 0.42 + 4.4, 2.4, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(2.4, r * 0.42 + 4.4, 2.4, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
+  ctx.strokeStyle = "rgba(40,46,59,.35)";
+  ctx.lineWidth = 1.2;
+  for (const s of [-1, 1]) for (const dy of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(s * r * 0.8, r * 0.3 + dy * 2.5);
+    ctx.lineTo(s * (r * 0.8 + 6), r * 0.3 + dy * 4.5);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function catLeg(hx, phase, far, cyc) {
+  const sw = Math.sin(cyc + phase) * 8;
+  const lift = Math.max(0, Math.cos(cyc + phase)) * 7;
+  ctx.strokeStyle = far ? "#e4efe8" : "#fff";
+  ctx.lineWidth = 7.5;
+  ctx.lineCap = "round";
+  ctx.beginPath(); ctx.moveTo(hx, -18); ctx.lineTo(hx + sw, -4 - lift); ctx.stroke();
+  ctx.strokeStyle = far ? "#c9dccf" : GREEN;
+  ctx.lineWidth = 1.8;
+  ctx.beginPath(); ctx.moveTo(hx, -18); ctx.lineTo(hx + sw, -4 - lift); ctx.stroke();
+  ctx.fillStyle = far ? "#7fbb9a" : GREEN;
+  ctx.beginPath(); ctx.arc(hx + sw, -3.5 - lift, 4.4, 0, 7); ctx.fill();
+}
+
+function catPaw(x, y, r, far) {
+  ctx.fillStyle = far ? "#7fbb9a" : GREEN;
+  ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+}
+
+function catTail(pose, t) {
+  ctx.strokeStyle = GREEN;
+  ctx.lineWidth = 6;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  if (pose === "run" || pose === "jump" || pose === "air") {
+    ctx.moveTo(-13, -18);
+    ctx.quadraticCurveTo(-22, -20 + Math.sin(t * 9) * 2, -27, -30 + Math.sin(t * 9) * 4);
+  } else if (pose === "sleep") {
+    ctx.moveTo(-16, -8);
+    ctx.quadraticCurveTo(-2, 4, 14, -4);
+  } else {
+    ctx.moveTo(-13, -14);
+    ctx.quadraticCurveTo(-6, 2, 9, -4 + Math.sin(t * 2.5) * 2);
+  }
+  ctx.stroke();
+  ctx.fillStyle = "#fff";
+  ctx.beginPath(); ctx.arc(-27, -30, 0, 0, 7); ctx.fill();
+}
+
+function drawCat() {
+  const p = player;
+  if (p.invuln > 0 && Math.floor(time * 14) % 2 === 0) return;
+  const moving = Math.abs(p.vx) > 40;
+  let pose;
+  if (!p.onGround) pose = p.vy < -50 ? "jump" : "air";
+  else if (moving) pose = "run";
+  else if (p.idleTime > 10) pose = "sleep";
+  else if (p.idleTime > 4) pose = "lick";
+  else pose = "idle";
+
+  ctx.save();
+  ctx.translate(p.x + p.w / 2, p.y + p.h);
+  let sx = 1, sy = 1;
+  if (p.landT > 0) { const k = p.landT / 0.22; sx = 1 + 0.28 * k; sy = 1 - 0.32 * k; }
+  else if (!p.onGround) { const st = Math.max(-0.1, Math.min(0.16, p.vy / 4500)); sx = 1 - st; sy = 1 + st; }
+  ctx.scale(sx, sy);
+  if (p.face === -1) ctx.scale(-1, 1);
+  if (pose === "run") ctx.rotate(0.08);
+  const t = time;
+  catTail(pose, t);
+
+  if (pose === "sleep") {
+    const br = Math.sin(t * 2.2) * 0.05;
+    ctx.fillStyle = "#fff";
+    ctx.strokeStyle = GREEN;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.ellipse(-2, -10, 20, 10 + br * 6, 0, 0, 7); ctx.fill(); ctx.stroke();
+    catPaw(-8, -4, 4.5, false);
+    catPaw(0, -3, 4.5, false);
+    catHead(12, -15, 13, 0, 0.22);
+    ctx.fillStyle = NAVY;
+    ctx.font = "bold 15px Verdana, sans-serif";
+    for (let i = 0; i < 3; i++) {
+      const zt = ((t * 0.8) + i * 0.33) % 1;
+      ctx.globalAlpha = Math.max(0, 1 - zt) * 0.8;
+      ctx.font = "bold " + Math.round(10 + i * 5 + zt * 4) + "px Verdana, sans-serif";
+      ctx.fillText("Z", 20 + i * 7 + zt * 8, -30 - i * 9 - zt * 10);
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+    return;
+  }
+
+  const sit = pose === "idle" || pose === "lick";
+  const cyc = p.anim * 1.1;
+  if (pose === "run") {
+    catLeg(-6, Math.PI, true, cyc);
+    catLeg(7, 0, true, cyc);
+  } else if (pose === "jump") {
+    catLeg(-7, 0, true, 0); ctx.lineWidth = 7.5;
+  }
+
+  ctx.fillStyle = "#fff";
+  ctx.strokeStyle = GREEN;
+  ctx.lineWidth = 2.5;
+  const bob = pose === "run" ? Math.abs(Math.sin(cyc)) * -2 : 0;
+  if (sit) {
+    ctx.beginPath(); ctx.ellipse(0, -24 + bob, 15, 21, 0, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#fff";
+    ctx.beginPath(); ctx.ellipse(9, -12, 9, 9, 0, 0, 7); ctx.fill();
+  } else {
+    ctx.beginPath(); ctx.ellipse(0, -20 + bob, 16, 15, 0, 0, 7); ctx.fill(); ctx.stroke();
+  }
+
+  if (pose === "run") {
+    catLeg(-6, 0, false, cyc);
+    catLeg(7, Math.PI, false, cyc);
+  } else if (pose === "jump" || pose === "air") {
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 7.5;
+    ctx.lineCap = "round";
+    const l1 = pose === "jump" ? [9, -12] : [8, -2];
+    const l2 = pose === "jump" ? [-9, -6] : [-8, -2];
+    ctx.beginPath(); ctx.moveTo(6, -16); ctx.lineTo(l1[0], l1[1]); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-6, -16); ctx.lineTo(l2[0], l2[1]); ctx.stroke();
+    catPaw(l1[0], l1[1] + 1, 4.4, false);
+    catPaw(l2[0], l2[1] + 1, 4.4, true);
+  } else {
+    catPaw(-5, -3, 4.6, true);
+    catPaw(5, -3, 4.6, false);
+  }
+
+  let eyeMode = p.blink > 0 ? 0 : 1;
+  let tilt = 0;
+  if (pose === "lick") {
+    eyeMode = 2;
+    tilt = 0.14;
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 7;
+    ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(9, -22); ctx.lineTo(13, -34); ctx.stroke();
+    catPaw(13, -35, 4.6, false);
+    if (Math.sin(t * 7) > 0.2) {
+      ctx.fillStyle = PINK;
+      ctx.beginPath(); ctx.ellipse(6, -33, 3, 2, -0.4, 0, 7); ctx.fill();
+    }
+  }
+  catHead(0, -48 + bob, 15, eyeMode, tilt);
   ctx.restore();
 }
 
