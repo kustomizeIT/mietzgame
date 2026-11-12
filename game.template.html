@@ -459,7 +459,7 @@ function update(dt) {
     state = "win";
     document.getElementById("winText").innerHTML =
       "Kustomize hat das K&ouml;rbchen erreicht!<br><b>" + score + " von " + fishes.length + " Fischen</b> gesammelt." +
-      (quizTotal > 0 ? "<br><b>Quiz: " + quizRight + " von " + quizTotal + " Fragen</b> richtig &ndash; +" + (quizRight * 3) + " Bonuspunkte" : "");
+      (quizTotal > 0 ? "<br><b>Quiz: " + quizRight + " von " + quizTotal + " Fragen</b> richtig &ndash; +" + (quizRight * 5) + " Bonuspunkte" : "");
     document.getElementById("winOverlay").classList.remove("hidden");
     document.getElementById("ctrl").style.display = "none";
     sWin();
@@ -514,11 +514,11 @@ function resolveQuiz(choice) {
   const fb = document.getElementById("qfeedback");
   if (correct) {
     quizRight++;
-    bonus += 3;
+    bonus += 5;
     updateHud();
     sFish();
     fb.className = "ok";
-    fb.innerHTML = "<b>Richtig! +3 Bonuspunkte</b>" + (quizQ.expl ? "<br>" + quizQ.expl : "");
+    fb.innerHTML = "<b>Richtig! +5 Bonuspunkte</b>" + (quizQ.expl ? "<br>" + quizQ.expl : "");
   } else {
     sHurt();
     fb.className = "no";
