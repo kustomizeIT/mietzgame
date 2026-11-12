@@ -3,17 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#8CC9A5">
-<title>Mietz Adventure</title>
+<meta name="theme-color" content="#82DCA8">
+<title>Kustomize Adventure</title>
 <style>
-  :root { --green:#8CC9A5; --pink:#FF66C4; --blue:#5CE1E6; --navy:#282E3B; }
+  :root { --green:#8CC9A5; --brand:#82DCA8; --pink:#FF66C4; --blue:#5CE1E6; --navy:#282E3B; --dark:#181D23; }
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body { width:100%; height:100%; overflow:hidden; background:#282E3B; font-family:'Trebuchet MS',Verdana,sans-serif; touch-action:none; user-select:none; -webkit-user-select:none; }
   #game { display:block; width:100%; height:100%; }
-  .overlay { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; background:rgba(40,46,59,.82); z-index:20; padding:24px; }
-  .card { background:#fff; border-radius:24px; padding:32px 28px; max-width:420px; width:90%; box-shadow:0 12px 40px rgba(0,0,0,.35); }
+  .overlay { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; background:radial-gradient(ellipse at 50% 35%, #23272f 0%, #181D23 70%); z-index:20; padding:24px; }
+  #startOverlay::before { content:""; position:absolute; inset:0; background-image:radial-gradient(rgba(130,220,168,.14) 1.5px, transparent 1.5px); background-size:26px 26px; pointer-events:none; }
+  .card { position:relative; background:#fff; border-radius:24px; padding:26px 24px 30px; max-width:440px; width:100%; box-shadow:0 12px 40px rgba(0,0,0,.5); border-top:6px solid var(--brand); }
+  .brandrow { display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:10px; }
+  .brandrow img { width:44px; height:auto; }
+  .wordmark { color:var(--brand); font-weight:bold; font-size:20px; letter-spacing:3px; }
   .card h1 { color:var(--green); font-size:clamp(26px,7vw,40px); letter-spacing:1px; }
   .card h2 { color:var(--navy); font-size:clamp(20px,6vw,30px); margin-bottom:8px; }
+  .quote { display:flex; align-items:center; gap:14px; background:#eef8f1; border-left:5px solid var(--brand); border-radius:12px; padding:12px 14px; margin:12px 0; text-align:left; }
+  .quote img { width:64px; height:auto; flex-shrink:0; }
+  .quote p { color:var(--navy); font-size:clamp(12px,3.4vw,14px); line-height:1.45; font-style:italic; }
+  .quote .who { display:block; font-style:normal; font-weight:bold; color:var(--green); margin-top:4px; }
   .card p { color:var(--navy); margin:10px 0 20px; font-size:clamp(14px,4vw,17px); line-height:1.5; }
   .card .hint { color:#7a8494; font-size:13px; margin-top:14px; }
   .btn { display:inline-block; background:var(--green); color:#fff; border:none; border-radius:999px; padding:14px 36px; font-size:clamp(16px,4.5vw,20px); font-weight:bold; cursor:pointer; box-shadow:0 6px 0 #6fae8a; transition:transform .08s, box-shadow .08s; }
@@ -52,8 +60,17 @@
 
 <div class="overlay" id="startOverlay">
   <div class="card">
-    <h1>Mietz Adventure</h1>
-    <p>Hilf <b>Mietz</b>, alle Fische zu sammeln und das K&ouml;rbchen zu erreichen!<br>Hoppe auf die Staubsauger-Roboter, um sie auszuschalten.</p>
+    <div class="brandrow">
+      <img src="__LOGO_B64__" alt="kustomize.it Logo">
+      <span class="wordmark">KUSTOMIZE.IT</span>
+    </div>
+    <h1>Kustomize Adventure</h1>
+    <div class="quote">
+      <img src="__MIETZ_B64__" alt="Kustomize, die Katze">
+      <p>&bdquo;Es ist nicht die st&auml;rkste Spezies, die &uuml;berlebt, auch nicht die intelligenteste, sondern diejenige, die am besten auf Ver&auml;nderungen reagiert.&ldquo;
+      <span class="who">&mdash; Charles Darwin</span></p>
+    </div>
+    <p>Hilf <b>Kustomize</b>, alle Fische zu sammeln und das K&ouml;rbchen zu erreichen!<br>Hoppe auf die Staubsauger-Roboter, um sie auszuschalten.</p>
     <button class="btn" id="startBtn">Los geht's!</button>
     <p class="hint">Pfeiltasten / WASD + Leerzeichen &ndash; oder auf dem Handy die Touch-Buttons</p>
   </div>
@@ -62,14 +79,14 @@
 <div class="overlay hidden" id="winOverlay">
   <div class="card">
     <h2>Miau! Geschafft!</h2>
-    <p id="winText">Mietz hat das K&ouml;rbchen erreicht.</p>
+    <p id="winText">Kustomize hat das K&ouml;rbchen erreicht.</p>
     <button class="btn pink" id="winRestart">Nochmal spielen</button>
   </div>
 </div>
 
 <div class="overlay hidden" id="overOverlay">
   <div class="card">
-    <h2>Mietz ist m&uuml;de&hellip;</h2>
+    <h2>Kustomize ist m&uuml;de&hellip;</h2>
     <p>Keine Leben mehr &uuml;brig. Ein kleines Nickerchen &ndash; und dann nochmal!</p>
     <button class="btn" id="overRestart">Neustart</button>
   </div>
@@ -341,7 +358,7 @@ function update(dt) {
       player.y + player.h > goal.y - TILE * 2) {
     state = "win";
     document.getElementById("winText").innerHTML =
-      "Mietz hat das K&ouml;rbchen erreicht!<br><b>" + score + " von " + fishes.length + " Fischen</b> gesammelt.";
+      "Kustomize hat das K&ouml;rbchen erreicht!<br><b>" + score + " von " + fishes.length + " Fischen</b> gesammelt.";
     document.getElementById("winOverlay").classList.remove("hidden");
     document.getElementById("ctrl").style.display = "none";
     sWin();

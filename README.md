@@ -1,4 +1,4 @@
-# Mietz Adventure 🐱
+# Kustomize Adventure 🐱
 
 Ein kleines Jump-'n'-Run-Browser-Spiel mit dem Maskottchen **Mietz** – im Stil von Super Mario Land. Läuft als **eine einzige, eigenständige HTML-Datei** ohne externe Abhängigkeiten. Ideal als Easter Egg auf der Webseite oder per **QR-Code auf Printmedien**.
 
@@ -33,7 +33,8 @@ Mietz wird prozedural in Canvas gezeichnet (kein starres Bild) und reagiert auf 
 - **Springen/Fallen**: gestreckte bzw. gespreizte Pose, Ohren nach oben
 - **Landen**: Kurzzeitiges Zusammendrücken (Squash) mit Staubpartikeln
 - Touch-Optimierung: keine versehentliche Zoom/Scroll-Gesten, Safe-Area-Support
-- Brand-Farben: Grün `#8CC9A5`, Pink `#FF66C4`, Blau `#5CE1E6`, Navy `#282E3B`
+- Brand-Farben: Grün `#8CC9A5` (Logo-Grün: `#82DCA8`), Pink `#FF66C4`, Blau `#5CE1E6`, Navy `#282E3B` / `#181D23`
+- Intro im kustomize.it-Branding: Logo, KUSTOMIZE.IT-Wordmark und das Darwin-Zitat mit der Katze
 - Mietz-Sprite ist als Data-URI eingebettet – die Datei funktioniert überall, auch offline
 
 ## Veröffentlichen mit GitHub Pages (für den QR-Code)
@@ -50,7 +51,8 @@ Alternativ: `index.html` einfach in einen beliebigen Ordner der bestehenden Webs
 - `index.html` – das fertige, eigenständige Spiel (nur diese eine Datei wird benötigt)
 - `game.template.html` – Quellcode-Vorlage (Platzhalter für das Level)
 - `build.py` – generiert `index.html` aus der Vorlage (Level einbetten)
-- `mietz_small.png` – kleiner Mietz-Sprite (Referenz; im Spiel wird die Katze prozedural animiert gezeichnet)
+- `mietz_small.png` – Katzen-Sprite für das Intro-Zitat (als Data-URI eingebettet)
+- `logo_small.png` – kustomize.it-Logo für das Intro (als Data-URI eingebettet)
 
 ## Level anpassen
 

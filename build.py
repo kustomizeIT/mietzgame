@@ -26,8 +26,13 @@ level = ["".join(r) for r in grid]
 assert all(len(r) == COLS for r in level)
 js_level = "[\n" + ",\n".join('"%s"' % r for r in level) + "\n]"
 
+def datauri(path):
+    return "data:image/png;base64," + base64.b64encode(open(path, "rb").read()).decode()
+
 html = open("game.template.html").read()
-assert "__LEVEL__" in html
+assert "__LEVEL__" in html and "__LOGO_B64__" in html and "__MIETZ_B64__" in html
 html = html.replace("__LEVEL__", js_level)
+html = html.replace("__LOGO_B64__", datauri("logo_small.png"))
+html = html.replace("__MIETZ_B64__", datauri("mietz_small.png"))
 open("index.html", "w").write(html)
 print("index.html geschrieben:", len(html), "Bytes")
