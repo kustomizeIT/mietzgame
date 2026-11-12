@@ -40,6 +40,29 @@
   #jumpBtn { background:rgba(255,102,196,.35); border-color:rgba(255,102,196,.7); width:86px; height:86px; font-size:34px; }
   #jumpBtn:active, #jumpBtn.on { background:rgba(255,102,196,.8); }
   .hidden { display:none !important; }
+  #quizOverlay { background:rgba(24,29,35,.92); }
+  #quizCard { max-width:520px; padding:20px 20px 22px; }
+  .qtop { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px; }
+  .qbadge { background:var(--green); color:#fff; border-radius:999px; padding:4px 12px; font-size:12px; font-weight:bold; letter-spacing:1px; }
+  .qbadge.schwer { background:var(--pink); }
+  .qbadge.mittel { background:#5bb8c9; }
+  #qtimerWrap { flex:1; height:10px; background:#e2e8e4; border-radius:999px; overflow:hidden; }
+  #qtimerFill { height:100%; width:100%; background:var(--green); border-radius:999px; transition:width .1s linear; }
+  #qtimerFill.low { background:var(--pink); }
+  #qtext { color:var(--navy); font-size:clamp(15px,4.2vw,18px); font-weight:bold; line-height:1.4; margin-bottom:14px; text-align:left; }
+  .qopt { display:block; width:100%; text-align:left; background:#f4f9f6; border:2px solid var(--green); border-radius:14px; padding:10px 12px 10px 40px; margin:7px 0; font-size:clamp(13px,3.6vw,15px); line-height:1.35; color:var(--navy); cursor:pointer; position:relative; font-family:inherit; }
+  .qopt .letter { position:absolute; left:10px; top:50%; transform:translateY(-50%); width:22px; height:22px; border-radius:50%; background:var(--green); color:#fff; font-weight:bold; font-size:13px; display:flex; align-items:center; justify-content:center; }
+  .qopt:active { transform:scale(.99); }
+  .qopt.good { background:var(--green); border-color:var(--green); color:#fff; }
+  .qopt.good .letter { background:#fff; color:var(--green); }
+  .qopt.bad { background:var(--pink); border-color:var(--pink); color:#fff; }
+  .qopt.bad .letter { background:#fff; color:var(--pink); }
+  .qopt.dim { opacity:.45; }
+  #qfeedback { border-radius:12px; padding:10px 12px; margin-top:10px; font-size:clamp(12px,3.4vw,14px); line-height:1.45; text-align:left; display:none; }
+  #qfeedback.ok { background:#e6f6ec; color:#1c5c33; display:block; }
+  #qfeedback.no { background:#fde9f5; color:#8a2b66; display:block; }
+  #qfeedback b { display:block; margin-bottom:4px; font-size:1.05em; }
+  #quizBtn { display:none; margin-top:14px; }
 </style>
 </head>
 <body>
@@ -77,6 +100,20 @@
   </div>
 </div>
 
+<div class="overlay hidden" id="quizOverlay">
+  <div class="card" id="quizCard">
+    <div class="qtop">
+      <span class="qbadge" id="qcat">KI-Frage</span>
+      <div id="qtimerWrap"><div id="qtimerFill"></div></div>
+      <span id="qsec">15</span>
+    </div>
+    <p id="qtext">Frage</p>
+    <div id="qopts"></div>
+    <div id="qfeedback"></div>
+    <button class="btn" id="quizBtn">Weiter &raquo;</button>
+  </div>
+</div>
+
 <div class="overlay hidden" id="winOverlay">
   <div class="card">
     <h2>Miau! Geschafft!</h2>
@@ -108,10 +145,11 @@ const LEVEL = [
 "                              ====                                      fff                            f                             ===   f        ===           ===     ",
 "        ====                               ===                  ===               ====                              ===                                                   ",
 "   fff                                                                  m                             ===                                 ===                             ",
-"  P         e               e               e                 e                 e                 e                 e               e               e                 G   ",
+"  P         e   Q           e               e   Q             e                 e    Q            e            Q    e               e               e    Q            G   ",
 "###################   #############    #############    #############       #############    #############    #############    #############    #############   ##########",
 "###################   #############    #############    #############       #############    #############    #############    #############    #############   ##########"
 ];
+const QUIZ = [{"id":"F01","diff":"Leicht","kracher":false,"q":"Was ist ein großes Sprachmodell (LLM) im Kern?","opts":["Eine Datenbank mit vorgefertigten Antworten","Ein Programm, das Text als Fortsetzung vorhersagt, basierend auf Wahrscheinlichkeiten aus Trainingsdaten","Eine Suchmaschine, die das Internet in Echtzeit durchsucht","Ein System, das ausschließlich Texte übersetzt"],"a":1,"expl":"Ein LLM berechnet für jedes Textstück, welches folgende Token wahrscheinlich sind. Es speichert keine Antworten als Einträge, sondern Muster in Form von Parametern."},{"id":"F02","diff":"Leicht","kracher":false,"q":"Was ist eine Halluzination im Kontext von KI?","opts":["Das Modell stürzt bei bestimmten Fragen ab","Das Modell weigert sich zu antworten","Das Modell erzeugt falsche, aber sehr überzeugend klingende Aussagen","Das Modell wiederholt die Frage des Nutzers endlos"],"a":2,"expl":"Halluzinationen entstehen, weil das Modell plausible Fortsetzungen generiert, nicht Wahrheit prüft. Falsche Fakten, Zitate oder Quellen können dabei absolut glaubwürdig wirken."},{"id":"F03","diff":"Leicht","kracher":false,"q":"Was ist ein Prompt?","opts":["Die Eingabe oder Anweisung, die man einem KI-Modell gibt","Die Antwort des KI-Modells","Der Speicherort der Trainingsdaten","Die Rechenleistung, die für die Anfrage nötig ist"],"a":0,"expl":"Der Prompt ist die Nutzeroberfläche zum Modell. Seine Qualität beeinflusst die Antwortqualität oft stärker als die Modellwahl."},{"id":"F04","diff":"Leicht","kracher":false,"q":"Was sind Token bei Sprachmodellen?","opts":["Ein Zahlungsmittel für API-Nutzung","Sicherheitszertifikate der Anbieter","Kleine Textabschnitte, in die Sprache zerlegt wird und die das Modell verarbeitet","Die Anzahl der Netzwerkschichten"],"a":2,"expl":"Modelle arbeiten nicht mit Buchstaben oder ganzen Sätzen, sondern mit Token (Wörter oder Wortteile). Abrechnung und Kontextgrenzen laufen ebenfalls über Token."},{"id":"F05","diff":"Leicht","kracher":false,"q":"Was bedeutet maschinelles Lernen?","opts":["Ein Programm wird für jeden Einzelfall explizit programmiert","Ein System lernt Muster aus Beispieldaten, statt nur fest einprogrammierte Regeln zu befolgen","Ein System kopiert Daten aus dem Internet","Ein Mensch lernt mit Hilfe eines Computers"],"a":1,"expl":"Klassische Software folgt festen Regeln. Maschinelles Lernen zieht Regeln und Muster selbst aus Daten, deshalb hängt die Qualität stark von den Trainingsdaten ab."},{"id":"F06","diff":"Leicht","kracher":false,"q":"Was ist der Unterschied zwischen Training und Inferenz?","opts":["Es gibt keinen, das sind Synonyme","Training meint das Speichern der Nutzerfragen, Inferenz das Löschen","Training ist das Lernen der Parameter aus Daten, Inferenz ist das Anwenden des trainierten Modells auf neue Anfragen","Training läuft beim Nutzer, Inferenz nur beim Anbieter"],"a":2,"expl":"Training ist teuer und aufwendig und passiert selten. Inferenz passiert bei jeder einzelnen Anfrage, zum Beispiel jedem Chat mit einem Assistenten."},{"id":"F07","diff":"Leicht","kracher":false,"q":"Was ist überwachtes Lernen (supervised learning)?","opts":["Das Modell lernt anhand von Beispieldaten mit bekannten, korrekten Zielergebnissen","Das Modell lernt komplett ohne Vorgaben","Ein Mensch beobachtet jede einzelne Entscheidung des Modells","Das Modell überwacht Nutzer"],"a":0,"expl":"Beim überwachten Lernen bekommt das Modell Beispiele mit Label (zum Beispiel E-Mails markiert als Spam oder kein Spam). Variante ohne Labels: unüberwachtes Lernen."},{"id":"F08","diff":"Leicht","kracher":false,"q":"Was macht generative KI anders als klassische KI?","opts":["Sie ist immer genauer","Sie benötigt keine Trainingsdaten","Sie arbeitet nur mit Zahlen","Sie erzeugt neue Inhalte wie Text, Bilder, Audio oder Code, statt nur zu klassifizieren oder vorherzusagen"],"a":3,"expl":"Klassische KI sortiert, klassifiziert oder prognostiziert. Generative KI erschafft Inhalte, die vorher so nicht existierten."},{"id":"F09","diff":"Leicht","kracher":false,"q":"Was ist ein Algorithmus?","opts":["Eine Programmiersprache","Eine eindeutige Schrittfolge zur Lösung eines Problems","Ein spezieller Computerchip","Eine Datenbank"],"a":1,"expl":"Ein Algorithmus ist eine Handlungsanweisung, wie ein Rezept. Auch ein nicht-digitaler Ablauf kann ein Algorithmus sein. KI-Modelle nutzen Algorithmen, sind aber selbst mehr als nur eine feste Schrittfolge."},{"id":"F10","diff":"Mittel","kracher":false,"q":"Ein LLM wurde vor zwei Jahren trainiert und hat keinen Internetzugriff. Was weiß es über gestern?","opts":["Nichts. Ohne aktuelle Quellen endet sein Wissen am Trainingsstichtag","Alles, denn es lernt aus jedem Gespräch weiter","Die Wahrheit, denn Trainingsdaten sind immer aktuell","Es kann es erraten, da Modelle Muster kennen"],"a":0,"expl":"Ein statisch trainiertes Modell hat einen Wissensstichtag. Aktualität erfordert Zusatzmechanismen wie Websuche oder RAG. Nicht jeder Chatbot, der aktuell wirkt, hat sie wirklich."},{"id":"F11","diff":"Mittel","kracher":false,"q":"Welche Architektur liegt fast allen modernen Sprachmodellen zugrunde?","opts":["Neuronale Netze ohne versteckte Schichten","Datenbanknormalisierung","Transformer","Entscheidungsbaum-Wälder"],"a":2,"expl":"Seit 2017 (Aufsatz \"Attention Is All You Need\") dominiert die Transformer-Architektur. GPT steht für Generative Pre-trained Transformer."},{"id":"F12","diff":"Schwer","kracher":false,"q":"Was leistet der Attention-Mechanismus in einem Transformer?","opts":["Er verhindert, dass das Modell Falschaussagen macht","Er gewichtet, welche Textstellen für eine andere Stelle relevant sind, auch über große Distanz im Text","Er speichert die Trainingsdaten ab","Er verschlüsselt die Eingaben"],"a":1,"expl":"Attention erlaubt dem Modell, Bezüge über ganze Texte hinweg herzustellen. Deshalb kann es zum Beispiel Pronomen weit entfernten Namen korrekt zuordnen."},{"id":"F13","diff":"Mittel","kracher":false,"q":"Was sind Parameter in einem KI-Modell?","opts":["Erlernbare Gewichte des Netzwerks, die beim Training angepasst werden","Die NutzerEinstellungen der Oberfläche","Die Quellenangaben der Trainingsdaten","Die Anzahl der Nutzer pro Tag"],"a":0,"expl":"Milliarden Parameter speichern die gelernten Muster. Wichtig fürs Verständnis: Mehr Parameter allein machen ein Modell nicht automatisch besser, auch Datenqualität und Training entscheiden."},{"id":"F14","diff":"Mittel","kracher":false,"q":"Was ist Fine-Tuning?","opts":["Das Lösen eines fertigen Modells in seine Bestandteile","Die erste Trainingsphase an riesigen Datenmengen","Das Feinjustieren der Chat-Oberfläche","Das Nachtraining eines vortrainierten Modells mit spezialisierten Daten für eine bestimmte Aufgabe"],"a":3,"expl":"Fine-Tuning passt ein bestehendes Modell an, zum Beispiel auf Firmensprache, medizinische Fachtexte oder einen bestimmten Tonfall. Vortraining plus Fine-Tuning ist der Standardweg."},{"id":"F15","diff":"Mittel","kracher":false,"q":"Was ist RAG (Retrieval-Augmented Generation)?","opts":["Eine Methode, bei der das Modell zuerst passende Dokumente aus einer Wissensquelle abruft und die Antwort daraus generiert","Ein Verfahren zum Komprimieren von Modellen","Ein Zensurfilter","Eine Form des Löschens von Trainingsdaten"],"a":0,"expl":"RAG holt relevante Quellen (Firmenwiki, Datenblätter, Verträge) in den Kontext, bevor das Modell antwortet. Vorteile: aktuellere, belegbare Antworten und weniger Halluzinationen bei internem Wissen."},{"id":"F16","diff":"Leicht","kracher":false,"q":"Was beschreibt das Kontextfenster eines Modells?","opts":["Die maximale Menge an Token, die das Modell gleichzeitig verarbeiten kann (Eingabe plus Ausgabe)","Die Größe der Trainingsdaten","Die Anzahl gleichzeitiger Nutzer","Den geographischen Standort der Server"],"a":0,"expl":"Alles, was das Modell gerade berücksichtigt, muss ins Kontextfenster passen. Wird es überschritten, fallen ältere Teile des Gesprächs aus der Betrachtung heraus."},{"id":"F17","diff":"Schwer","kracher":false,"q":"Was bedeutet der Begriff \"Open Weights\" (offene Modellgewichte)?","opts":["Das Modell ist urheberrechtlich komplett frei nutzbar","Die Trainingsdaten liegen offen","Die numerischen Gewichte des Modells sind öffentlich verfügbar, aber Trainingsdaten und Nutzungsrechte können trotzdem geschlossen sein","Das Modell wurde von einer Behörde zertifiziert"],"a":2,"expl":"Offene Gewichte erlauben lokales Betreiben und Nachtrainieren. Der Name sagt aber nichts über die Trainingsdaten, die Lizenz oder die Erlaubnis für kommerzielle Nutzung. Open Weights ist nicht gleichbedeutend mit Open Source."},{"id":"F18","diff":"Leicht","kracher":false,"q":"Was ist ein Benchmark im KI-Kontext?","opts":["Ein Börsenkurs für Rechenleistung","Ein standardisierter Test, um die Leistung von Modellen vergleichbar zu messen","Die Speicheradresse eines Modells","Ein Treffen von KI-Forschern"],"a":1,"expl":"Benchmarks messen zum Beispiel Logik, Programmierfähigkeit oder Medizinwissen. Achtung: Modelle können gezielt auf bekannte Benchmarks optimiert werden, gute Werte bedeuten nicht automatisch gute Praxisleistung."},{"id":"F19","diff":"Mittel","kracher":false,"q":"Was ist Overfitting (Überanpassung)?","opts":["Das Modell ist zu groß für den Server","Das Modell lernt zu langsam","Das Modell verweigert das Training","Das Modell lernt die Trainingsdaten fast auswendig und schneidet deshalb bei neuen, unbekannten Daten schlecht ab"],"a":3,"expl":"Ein überangepasstes Modell wirkt bei Trainingsaufgaben perfekt und scheitert im echten Einsatz. Gegenmittel: mehr und vielfältigere Daten, Validierungsdaten, frühzeitiges Stoppen."},{"id":"F20","diff":"Schwer","kracher":false,"q":"Warum geben LLMs bei identischer Frage manchmal unterschiedliche Antworten?","opts":["Weil die Ausgabe stochastisch ist: das Modell wählt aus einer Wahrscheinlichkeitsverteilung, und Einstellungen wie die Temperatur beeinflussen diese Auswahl","Weil das Modell sich weiterbildet","Weil die Server unterschiedlich konfiguriert sind","Das passiert nicht, die Ausgabe ist deterministisch"],"a":0,"expl":"Bei jeder Token-Wahl wird aus Wahrscheinlichkeiten gesampelt. Höhere Temperatur bedeutet mehr Variation (und mehr Kreativität, aber auch mehr Fehleranfälligkeit). Exakt identische Wiederholung der Frage ist keine Garantie für identische Antworten."},{"id":"F21","diff":"Mittel","kracher":true,"q":"Darf man ein Dokument mit personenbezogenen Daten in ein KI-Tool hochladen?","opts":["Nein, das ist in der EU grundsätzlich verboten","Ja, das ist immer erlaubt, wenn das Tool von einem großen Anbieter stammt","Ja, aber nur mit einer Rechtsgrundlage, erfüllten Informationspflichten, einem Auftragsverarbeitungsvertrag und geprüften Datenflüssen","Ja, solange das Dokument danach gelöscht wird"],"a":2,"expl":"Die DSGVO verbietet KI-Nutzung nicht pauschal. Sie verlangt aber eine Rechtsgrundlage, Zweckbindung, Datenminimierung, Information der Betroffenen, einen Vertrag nach Art. 28 DSGVO mit dem Anbieter und eine Prüfung, ob Daten in Drittländer fließen. Pauschales Verbot und pauschales Erlaubnis sind beide falsch."},{"id":"F22","diff":"Leicht","kracher":false,"q":"Welcher Vertrag ist zwingend, wenn ein Dienstleister wie ein KI-Anbieter für euch personenbezogene Daten verarbeitet?","opts":["Ein Kreditkartenvertrag","Ein Auftragsverarbeitungsvertrag (AVV) nach Art. 28 DSGVO","Ein Geheimhaltungsvertrag reicht aus","Kein Vertrag, die AGB des Anbieters genügen"],"a":1,"expl":"Ohne AVV mit dem erforderlichen Mindestinhalt (Weisungen, Vertraulichkeit, Sicherheit, Löschung, Kontrollrechte) ist die Vergabe der Verarbeitung unzulässig. Große Anbieter stellen Standardverträge bereit, geprüft werden muss der Verarbeitungsgegenstand trotzdem."},{"id":"F23","diff":"Mittel","kracher":false,"q":"Wer ist in der Regel Verantwortlicher im Sinne der DSGVO, wenn ein Unternehmen ein KI-Tool einsetzt und dabei Mitarbeitenden- oder Kundendaten eingibt?","opts":["Das einsetzende Unternehmen, denn es bestimmt Zwecke und Mittel der Verarbeitung","Der KI-Anbieter, denn er betreibt die Software","Die betroffenen Personen, denn sie nutzen die Daten","Niemand, weil KI keinen Verantwortlichen hat"],"a":0,"expl":"Das Unternehmen, das das Tool einsetzt, ist Verantwortlicher für die eingegebenen Daten. Der Anbieter ist Auftragsverarbeiter. Verantwortung lässt sich nicht auf das Tool abwälzen."},{"id":"F24","diff":"Schwer","kracher":false,"q":"Was regelt Art. 22 DSGVO?","opts":["Die Speicherdauer von Chatprotokollen","Das Recht auf eine Kopie aller Trainingsdaten","Betroffene dürfen nicht allein einer vollautomatisierten Entscheidung mit erheblicher Rechtswirkung unterworfen werden und können eine menschliche Überprüfung verlangen","Die Lizenzpflicht für KI-Software"],"a":2,"expl":"Lehnt eine Bank einen Kredit vollautomatisch ab oder sortiert ein System Bewerbungen vollständig ohne Mensch aus, greift Art. 22. Relevant wird er überall, wo KI-Entscheidungen Menschen direkt betreffen."},{"id":"F25","diff":"Schwer","kracher":true,"q":"Ein Unternehmen setzt ein KI-Modell eines US-Anbieters ein und hostet es bei AWS in einem EU-Rechenzentrum. Sind die Daten damit DSGVO-sicher in der EU?","opts":["Ja, EU-Server bedeuten automatisch DSGVO-Konformität","Ja, weil AWS keine US-Gesetze unterliegt","Nein, US-Modelle dürfen grundsätzlich nie in der EU eingesetzt werden","Nicht automatisch: US-Anbieter können über US-Gesetze wie FISA und den CLOUD Act auch auf EU-gehostete Daten zugreifen, es braucht Zertifizierung, Transferprüfung und ggf. Zusatzmaßnahmen"],"a":3,"expl":"Der Serverstandort allein entscheidet nicht. Der EuGH sieht es als Drittlandübermittlung an, wenn Daten für einen US-Anbieter zugänglich sind, selbst wenn sie in der EU gespeichert werden, weil US-Zugriffsgesetze greifen können. Zu prüfen sind: DPF-Zertifizierung des Anbieters, eigene Prüfungs- und Übertragungsrisikoanalyse (TIA), Verträge und technische Zusatzmaßnahmen. EU-Hosting reduziert das Risiko, eliminiert es aber nicht."},{"id":"F26","diff":"Schwer","kracher":false,"q":"Was war die Kernentscheidung des EuGH-Urteils Schrems II (2020)?","opts":["Der Privacy Shield wurde für ungültig erklärt; Standardvertragsklauseln blieben nutzbar, sind aber nur mit zusätzlichen Maßnahmen zur Beherrschbarkeit des US-Zugriffs risikofrei einsetzbar","Der Privacy Shield wurde bestätigt","Alle US-Cloud-Dienste wurden in der EU verboten","Die DSGVO wurde insgesamt gekippt"],"a":0,"expl":"Schrems II machte Transfers in die USA nicht unmöglich, aber erstmals zur Risikoanalyse-Pflicht (Transfer Impact Assessment). Die Frage, ob ein Transfer ohne ausreichende Schutzmaßnahmen verantwortbar ist, muss jedes Unternehmen selbst beantworten."},{"id":"F27","diff":"Mittel","kracher":false,"q":"Was ist das EU-US Data Privacy Framework (DPF)?","opts":["Ein Netzwerkprotokoll für Rechenzentren","Eine US-Konzernrichtlinie","Ein Angemessenheitsbeschluss der EU-Kommission von 2023, der Datentransfers zu denjenigen US-Unternehmen erlaubt, die sich zertifiziert haben","Ein Vertrag zwischen zwei Firmen"],"a":2,"expl":"Der Beschluss vom 10.07.2023 ersetzt den gekippten Privacy Shield. Wichtig: Er gilt nur für Unternehmen, die aktiv auf der Zertifizierungsliste stehen, und kann bei ausreichenden Zweifeln ausgesetzt oder aufgehoben werden. Stand November 2026 ist er in Kraft, ein Rechtsmittel vor dem EuGH (C-703/25 P) ist aber anhängig."},{"id":"F28","diff":"Schwer","kracher":true,"q":"Ein KI-Modell wurde mit personenbezogenen Daten trainiert. Ist es deshalb automatisch ein \"anonymes\" Objekt ohne datenschutzrechtliche Bedeutung?","opts":["Ja, Training vernichtet die Personenbeziehung immer","Nein. Nach der EDPB-Meinung 28/2024 ist Anonymität ein Einzelfall, bei dem geprüft werden muss, ob sich Daten von Trainingspersonen aus dem Modell herausziehen oder abfragen lassen","Ja, wenn der Anbieter es schriftlich behauptet","Nur wenn das Modell kleiner als 1 Milliarde Parameter ist"],"a":1,"expl":"Die Aufsichtsbehörden akzeptieren Anonymität nicht als Faustregel, sondern als Analyseergebnis: Modellarchitektur, Trainingsmethoden und vor allem Widerstandsfähigkeit gegen Extraktions- und Inferenzangriffe (Auslesen, Regurgitation, Membership-Inference) müssen geprüft werden. Wer mit personenbezogenen Daten trainiert, bleibt unter der DSGVO in der Verantwortung."},{"id":"F29","diff":"Schwer","kracher":false,"q":"Darf ein Unternehmen zur Trainingsdaten eines KI-Modells verwenden, ohne jede betroffene Person um Einwilligung zu fragen?","opts":["Ja, für Training gilt die DSGVO nicht","Ja, wenn die Daten verschlüsselt werden","Nein, Einwilligung ist der einzige Weg","Eine Einwilligung ist nicht zwingend, denn berechtigtes Interesse kann als Rechtsgrundlage infrage kommen. Voraussetzung ist aber eine dreistufige Prüfung (verfolgtes Interesse, Notwendigkeit, Interessenabwägung) und die Informationspflichten bleiben"],"a":3,"expl":"Berechtigtes Interesse ist kein Freibrief. Die Interessenabwägung muss zu Gunsten der Betroffenen ausgehen und die Informationspflichten nach Art. 13, 14 DSGVO bleiben bestehen, was bei riesigen Trainingsdatensätzen praktisch das eigentliche Problem ist. Die EDPB-Meinung 28/2024 bestätigt: möglich, aber mit messbaren Hürden."},{"id":"F30","diff":"Schwer","kracher":true,"q":"Eine betroffene Person verlangt die Löschung ihrer Daten. Das Unternehmen hat mit diesen Daten aber bereits ein KI-Modell trainiert. Kann die Löschung einfach aus dem Modell vollzogen werden?","opts":["Ja, mit einem Klick beim Anbieter","Praktisch kaum. Die Löschungspflicht betrifft die Datenbestände, aber einmal trainierte Modellgewichte lassen sich nicht gezielt um einzelne Personen \"bereinigen\". Deshalb ist entscheidend, was vor und beim Training an Datenschutz und Minimierung sichergestellt wurde","Nein, das Modell muss vollständig gelöscht werden","Ja, wenn die Daten vorher pseudonymisiert wurden"],"a":1,"expl":"Das ist einer der zentralen Grundsätze im KI-Datenschutz: Es gibt praktisch keine rückwirkende \"Löschung\" aus Modellgewichten. Da unverzügliche Löschung und damit das Erfordernis, bereits bei der Trainingsdatenauswahl sorgfältig zu minimieren und die Rechtmäßigkeit vorab zu sichern. Ein unverzügliches Bereinigen ist technisch nicht Standard. Für die Betroffenen bleibt oft nur, ob das Training selbst rechtmäßig war."},{"id":"F31","diff":"Leicht","kracher":false,"q":"Was ist der Unterschied zwischen Pseudonymisierung und Anonymisierung?","opts":["Pseudonymisierte Daten bleiben personenbezogen, weil eine Zuordnung zu einer Person (z. B. über den Schlüssel) möglich bleibt; anonymisierte Daten sind endgültig nicht mehr einer Person zuordenbar","Es gibt keinen Unterschied","Anonymisierung ist nur die verschlüsselte Speicherung","Pseudonymisierte Daten unterliegen nicht der DSGVO"],"a":0,"expl":"Häufiger Fehler in KI-Projekten: Namen durch IDs ersetzen und von \"anonym\" sprechen. Solange ein Zuordnungsschlüssel existiert, bleibt die DSGVO voll anwendbar."},{"id":"F32","diff":"Mittel","kracher":false,"q":"Wann ist eine Datenschutz-Folgenabschätzung (DSFA/DPIA) beim Einsatz von KI erforderlich?","opts":["Nie, KI hat nichts mit Datenschutz zu tun","Nur wenn der KI-Anbieter es verlangt","Wenn die Verarbeitung voraussichtlich ein hohes Risiko für Betroffene birgt, etwa bei systematischer Überwachung, Profilbildung oder großen Datenmengen. Beim KI-Einsatz ist sie regelmäßig geboten","Nur nach einem Datenschaden"],"a":2,"expl":"Bei systematischem Profiling, Überwachung, automatisierten Entscheidungen oder Verarbeitung sensibler Daten ist die DSFA vorab Pflicht. Sie ist zugleich das beste interne Steuerungswerkzeug für KI-Projekte."},{"id":"F33","diff":"Mittel","kracher":false,"q":"Wie stuft der EU AI Act KI-Systeme nach Risiko ein?","opts":["In zwei Klassen: legal und illegal","In vier Stufen: unannehmbare (verbotene) Praxis, Hochrisiko, Transparenzpflichten, minimales Risiko","In eine einzige Klasse für alle Systeme","Nach dem Umsatz des Anbieters"],"a":1,"expl":"Die Verordnung (EU) 2024/1689 folgt einem risikobasierten Ansatz: verbotene Praktiken, Hochrisiko-Systeme mit strengen Pflichten, Transparenzpflichten (z. B. Kennzeichnung von KI-Inhalten) und minimales Risiko ohne besondere Pflichten."},{"id":"F34","diff":"Mittel","kracher":false,"q":"Welche KI-Anwendung ist seit dem 2. Februar 2025 in der EU verboten?","opts":["KI-gestützte Rechtschreibprüfung","Empfehlungsalgorithmen für Produkte","Übersetzungstools","Social Scoring: die generelle Bewertung des Sozialverhaltens von Personen mit weitreichenden Nachteilen"],"a":3,"expl":"Verboten sind unter anderem Social Scoring, manipulative Techniken, die Menschen schaden sollen, das unzielgerichtete Zusammenkratzen von Gesichtsbildern aus dem Internet für Gesichtserkennungsdatenbanken und die biometrische Kategorisierung zur Ableitung sensibler Merkmale."},{"id":"F35","diff":"Mittel","kracher":false,"q":"Wie hoch ist das Höchstbußgeld des AI Act für verbotene KI-Praktiken?","opts":["Bis zu 35 Millionen Euro oder 7 Prozent des weltweiten Jahresumsatzes, je nachdem, welcher Betrag höher ist","Bis zu 5.000 Euro","Bis zu 15 Prozent des Umsatzes","Der AI Act sieht keine Bußgelder vor"],"a":0,"expl":"Die drei Stufen: bis 35 Mio. EUR oder 7 Prozent für verbotene Praktiken, bis 15 Mio. EUR oder 3 Prozent für die meisten übrigen Pflichtverstöße (inkl. GPAI-Pflichten), bis 7,5 Mio. EUR oder 1 Prozent für falsche Informationen an Behörden. Für KMU und Start-ups gilt der niedrigere der beiden Werte."},{"id":"F36","diff":"Schwer","kracher":false,"q":"Seit wann gelten die Pflichten des AI Act für Anbieter von GPAI-Modellen (allgemeine, vielseitig einsetzbare Modelle), zum Beispiel die Zusammenfassung der Trainingsdaten?","opts":["Seit dem 1. August 2024, dem Inkrafttreten","Seit dem 2. Februar 2025","Seit dem 2. August 2025","Erst ab 2030"],"a":2,"expl":"Der AI Act gilt gestaffelt: Verbote seit Februar 2025, GPAI-Pflichten (Technik-Dokumentation, Zusammenfassung der Trainingsdaten, Urheberrecht) seit August 2025, Transparenz- und Kennzeichnungspflichten seit August 2026, die Hochrisiko-Pflichten für Annex-III-Systeme zuletzt (nach Verschiebung durch das Digital-Omnibus-Paket auf Ende 2027)."},{"id":"F37","diff":"Schwer","kracher":false,"q":"Ab welcher Vermutungsschwelle gilt ein GPAI-Modell im AI Act als Modell mit Systemrisiko?","opts":["Ab 1 Milliarde Parameter","Ab einer Trainings-Rechenleistung von 10 hoch 25 FLOPs","Ab 1 Million Nutzern","Nur wenn das Modell selbstbewusst auftritt"],"a":1,"expl":"Die Verordnung vermutet Systemrisiko ab 10^25 FLOPs Trainingsrechenleistung. Solche Modelle haben zusätzliche Pflichten: Modellbewertungen, Risikomanagement, Meldung von schwerwiegenden Zwischenfällen. Die Schwelle ist eine widerlegbare Vermutung, kein Naturgesetz."},{"id":"F38","diff":"Mittel","kracher":false,"q":"Was schreibt der AI Act zur Transparenz gegenüber Nutzern vor?","opts":["Nutzer müssen informiert werden, wenn sie mit einem KI-System interagieren, und KI-generierte bzw. manipulierte Inhalte (Deepfakes) müssen als solche erkennbar gekennzeichnet werden","KI muss immer unsichtbar bleiben","Nur Anbieter müssen Bescheid wissen, nicht die Nutzer","Es reicht, wenn die Nutzungsbedingungen es irgendwo erwähnen"],"a":0,"expl":"Chatbots müssen sich zu erkennen geben, Deepfakes müssen markiert werden, und maschinenlesbare Markierungen (z. B. Wasserzeichen) für KI-Inhalte sind Teil des Regelwerks. Ziel: niemand soll ohne sein Wissen mit KI interagieren oder KI-Fälschungen für echt halten müssen."},{"id":"F39","diff":"Mittel","kracher":false,"q":"Welche Behörde überwacht in der EU die Einhaltung der Regeln für GPAI-Modelle?","opts":["Die deutsche Datenschutzbehörde","Die NATO","Jeder Mitgliedstaat entscheidet frei","Das KI-Büro (AI Office) der EU-Kommission"],"a":3,"expl":"Das AI Office ist für GPAI-Modelle zuständig, kann Modellbewertungen anordnen und Geldbußen verhängen. Für konkrete KI-Systeme im Binnenmarkt bleiben nationale Marktüberwachungsbehörden zuständig."},{"id":"F40","diff":"Mittel","kracher":false,"q":"Wie gilt ein KI-System, das Bewerbungen automatisch durchsieht (CV-Screening), im AI Act?","opts":["Als minimal riskant, es gelten keine Pflichten","Als Hochrisiko-System, denn es beeinflusst den Zugang zu Beschäftigung","Als verboten","Es ist vom AI Act ausgenommen"],"a":1,"expl":"Systeme für Personalauswahl, Kreditvergabe, biometrische Identifizierung, kritische Infrastrukturen oder Bildungsentscheidungen gelten als Hochrisiko. Sie brauchen Risikomanagement, Datengüte, menschliche Aufsicht, Protokollierung und Konformitätsbewertung."},{"id":"F41","diff":"Schwer","kracher":false,"q":"Was gilt im AI Act für Emotionserkennung am Arbeitsplatz?","opts":["Sie ist erlaubt und unreguliert","Sie ist nur mit Einwilligung erlaubt","Sie ist grundsätzlich verboten, mit sehr engen Ausnahmen (z. B. medizinische oder sicherheitsrechte Gründe)","Sie wird erst ab 2030 geregelt"],"a":2,"expl":"Seit Februar 2025 verboten: Emotionserkennung am Arbeitsplatz und in Bildungseinrichtungen, mit engen Ausnahmen für medizinische oder Sicherheitszwecke. Mitverboten: die biometrische Kategorisierung, die sensiblere Merkmale wie Herkunft, Religion oder sexuelle Orientierung ableitet."},{"id":"F42","diff":"Schwer","kracher":false,"q":"Gilt der EU AI Act auch für Anbieter mit Sitz außerhalb der EU?","opts":["Ja. Wenn ein KI-System im EU-Binnenmarkt bereitgestellt oder in der EU genutzt wird und dabei EU-Recht gilt, ist die Verordnung anwendbar, egal wo der Anbieter sitzt","Nein, er gilt nur für EU-Firmen","Nur wenn die EU es mit dem Herkunftsland vereinbart","Nur für US-Anbieter"],"a":0,"expl":"Genau wie die DSGVO hat der AI Act eine Marktorientierung: Der Zugang zum EU-Markt ist der Anknüpfungspunkt. Deshalb unterziehen sich auch große nicht-europäische Anbieter den Regeln, wenn sie EU-Kunden bedienen."},{"id":"F43","diff":"Mittel","kracher":false,"q":"Welches dieser Systeme fällt nicht in die Hochrisiko-Klasse des AI Act?","opts":["KI für die biometrische Identifizierung von Personen","KI für die Kreditwürdigkeitsprüfung","KI als Sicherheitskomponente kritischer Infrastruktur","Ein Spam-Filter für ein privates E-Mail-Postfach"],"a":3,"expl":"Hochrisiko ist an Entscheidungskontexte mit großen Auswirkungen für Menschen geknüpft. Ein Spam-Filter ist minimales Risiko und praktisch frei von Pflichten."},{"id":"F44","diff":"Leicht","kracher":false,"q":"Warum sollte man KI-Antworten für rechtlich oder geschäftlich relevante Inhalte nicht ungeprüft übernehmen?","opts":["Weil KI zu teuer ist","Weil KI halluzinieren kann und die Verantwortung für das Ergebnis beim Menschen bleibt","Weil die Antworten immer zu lang sind","Weil KI nie Recht hat"],"a":1,"expl":"KI ist ein Werkzeug, kein Verantwortungsträger. Prüfung, Freigabe und Haftung verbleiben beim Menschen. Der AI Act verstärkt dies für Hochrisiko-Fälle sogar mit ausdrücklichen Pflichten zur menschlichen Aufsicht."},{"id":"F45","diff":"Mittel","kracher":false,"q":"Mitarbeitende sollen firmeninterne Dokumente in ein kostenloses Consumer-KI-Tool kopieren, um Texte zu verbessern. Was ist die Haltung?","opts":["Unproblematisch, das Tool ist ja kostenlos","Unproblematisch, wenn der Text nur kurz ist","Riskant: die AGB solcher Tools erlauben oft eine Nutzung der Eingaben für Modelltraining, was Vertraulichkeits- und Datenschutzverstöße bedeuten kann. Firmen brauchen klare Regeln und freigegebene Tools","Solange niemand es merkt, ist es legal"],"a":2,"expl":"Der klassische Fall für eine interne KI-Richtlinie: Consumer-Tools für private Zwecke, Business-Tools mit AVV und Trainingsauschluss für Firmen- und personenbezogene Daten."},{"id":"F46","diff":"Mittel","kracher":false,"q":"Anruf von der vermeintlichen Nummer des Geschäftsführers mit exakt seiner Stimme: er fordert in Minuten eine dringende Überweisung. Was ist der richtige Umgang?","opts":["Nicht auf die Forderung hin handeln, sondern die Identität über einen zweiten, unabhängigen Kanal (bekannte Nummer, persönliche Nachfrage) verifizieren, denn Stimmklonen ist heute mit wenigen Sekunden Audio möglich","Sofort überweisen, die Stimme stimmt ja","Zurückschreien und auflegen, danach nichts tun","Solange es um kleine Beträge geht, besteht kein Risiko"],"a":0,"expl":"Stimm-KI-Overlaps sind ein Standard-Betrugsmuster geworden. Verteidigung: feste Verifizierungswege und Vier-Augen-Prinzip bei Zahlungen, niemals Kanal-im-Kanal bestätigen."},{"id":"F47","diff":"Mittel","kracher":false,"q":"Was ist rechtlich zu beachten, wenn KI Bilder oder Videos von real existierenden Personen erzeugt?","opts":["Nichts, KI-Inhalte sind frei","Nur der Stromverbrauch ist relevant","Der Anbieter haftet für alles","Persönlichkeits- und Bildrechte der abgebildeten Personen bleiben unberührt, und der AI Act verlangt zusätzlich die Kennzeichnung solcher Deepfake-Inhalte"],"a":3,"expl":"Wer das Recht am eigenen Bild oder das allgemeine Persönlichkeitsrecht verletzt, haftet auch wenn ein Modell den Content erzeugt hat. Seit August 2026 gilt die Pflicht zur Kennzeichnung von KI-generierten Inhalten verstärkt."},{"id":"F48","diff":"Mittel","kracher":false,"q":"Ein Unternehmen übernimmt eine KI-generierte Analyse mit einem Fehler in die Entscheidung. Wer haftet?","opts":["Das Unternehmen bzw. die Verantwortlichen, die das Ergebnis ungeprüft übernommen haben","Der KI-Anbieter, denn das Modell hat den Fehler gemacht","Der Entwickler des Algorithmus","Die Hardware"],"a":0,"expl":"Für den Geschäftsentscheidungsprozess haftet die Organisation, die einsetzt. Ein Modellfehler entbindet nicht von der Prüfungspflicht."},{"id":"F49","diff":"Schwer","kracher":false,"q":"Haben rein KI-generierte Werke (Text, Bild, Musik) in der EU Urheberrechtsschutz?","opts":["Ja, automatisch wie jedes Werk","Ja, das Modell ist der Urheber","Nein, ohne wesentliche eigene menschliche schöpferische Leistung entsteht in der EU kein Urheberrechtsschutz","Nur wenn die Daten bezahlt wurden"],"a":2,"expl":"Urheber ist nach EU-Verständnis nur der Mensch. Wer KI-Output 1:1 übernimmt, erhält keinen Schutz; bei maßgeblicher menschlicher Gestaltung kann der menschliche Anteil geschützt sein. Für die kommerzielle Nutzung von KI-Output heißt das: kein exklusives Recht gegen Nachahmer."},{"id":"F50","diff":"Mittel","kracher":false,"q":"Was ist der wirksamste Weg, Halluzinationen bei Fragen zu firmeninternem Wissen zu reduzieren?","opts":["Länger nachdenken, dann ist die Antwort richtig","RAG mit geprüften internen Quellen einsetzen, sodass das Modell aus freigegebenen Dokumenten antwortet und citierbar bleibt, statt sich auf Gedächtnis zu verlassen","Das Modell mehrmals fragen und die Mehrheitsantwort nehmen","Ein größeres Modell verwenden"],"a":1,"expl":"Mit RAG wird die Antwort an echte Quellen gebunden und nachprüfbar. Größere Modelle oder mehrfaches Fragen erhöhen die Trefferwahrscheinlichkeit, garantieren sie aber nicht und bleiben unbeweisbar."}];
 const TILE = 48;
 const ROWS = LEVEL.length;
 const COLS = LEVEL[0].length;
@@ -140,8 +178,9 @@ const platAt = (c, r) => r >= 0 && r < ROWS && c >= 0 && c < COLS && LEVEL[r][c]
 
 let fishes = [], enemies = [], movers = [], goal = null, spawn = { x: 100, y: 100 };
 let floats = [], sparks = [], bonus = 0;
+let quizBeacons = [], quizPool = [], quizQ = null, quizMap = [], quizT = 0, quizRight = 0, quizTotal = 0, quizBeacon = null;
 function parseLevel() {
-  fishes = []; enemies = []; movers = []; goal = null;
+  fishes = []; enemies = []; movers = []; goal = null; quizBeacons = [];
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
     const ch = LEVEL[r][c];
     if (ch === "f") fishes.push({ x: c * TILE + TILE / 2, y: r * TILE + TILE / 2, taken: false, t: Math.random() * 6 });
@@ -149,6 +188,7 @@ function parseLevel() {
     else if (ch === "m") movers.push({ x: c * TILE - TILE, y: r * TILE, w: TILE * 3, h: 22, dir: 1, min: c * TILE - TILE - 3 * TILE, max: c * TILE - TILE + 3 * TILE, dx: 0 });
     else if (ch === "P") spawn = { x: c * TILE, y: (r + 1) * TILE - 64 };
     else if (ch === "G") goal = { x: c * TILE, y: r * TILE };
+    else if (ch === "Q") quizBeacons.push({ x: c * TILE, y: r * TILE, used: false });
   }
 }
 parseLevel();
@@ -168,6 +208,8 @@ function resetPlayer() {
 function startGame() {
   parseLevel(); lives = 3; score = 0; time = 0; confetti = [];
   floats = []; sparks = []; bonus = 0;
+  quizPool = QUIZ.slice().sort(() => Math.random() - 0.5).slice(0, 5);
+  quizRight = 0; quizTotal = 0;
   resetPlayer();
   document.getElementById("startOverlay").classList.add("hidden");
   document.getElementById("winOverlay").classList.add("hidden");
@@ -297,6 +339,15 @@ function loseLife(respawn) {
 
 function update(dt) {
   time += dt;
+  if (state === "quiz") {
+    quizT -= dt;
+    const fill = document.getElementById("qtimerFill");
+    fill.style.width = Math.max(0, quizT / 15 * 100) + "%";
+    fill.classList.toggle("low", quizT < 5);
+    document.getElementById("qsec").textContent = Math.max(0, Math.ceil(quizT));
+    if (quizT <= 0) resolveQuiz(-1);
+    return;
+  }
   for (const m of movers) {
     m.dx = m.dir * 110 * dt;
     m.x += m.dx;
@@ -401,11 +452,20 @@ function update(dt) {
     }
   }
 
+  for (const b of quizBeacons) {
+    if (!b.used && player.x + player.w > b.x && player.x < b.x + TILE &&
+        player.y + player.h > b.y - TILE * 2 && player.y < b.y + TILE) {
+      openQuiz(b);
+      break;
+    }
+  }
+
   if (goal && player.x + player.w > goal.x + 8 && player.x < goal.x + TILE * 1.5 &&
       player.y + player.h > goal.y - TILE * 2) {
     state = "win";
     document.getElementById("winText").innerHTML =
-      "Kustomize hat das K&ouml;rbchen erreicht!<br><b>" + score + " von " + fishes.length + " Fischen</b> gesammelt.";
+      "Kustomize hat das K&ouml;rbchen erreicht!<br><b>" + score + " von " + fishes.length + " Fischen</b> gesammelt." +
+      (quizTotal > 0 ? "<br><b>Quiz: " + quizRight + " von " + quizTotal + " Fragen</b> richtig &ndash; +" + (quizRight * 3) + " Bonuspunkte" : "");
     document.getElementById("winOverlay").classList.remove("hidden");
     document.getElementById("ctrl").style.display = "none";
     sWin();
@@ -418,6 +478,97 @@ function update(dt) {
 
   const target = Math.max(0, Math.min(player.x - viewW * 0.42, COLS * TILE - viewW));
   camX += (target - camX) * Math.min(1, dt * 6);
+}
+
+function openQuiz(b) {
+  quizBeacon = b;
+  quizQ = quizPool.pop();
+  if (!quizQ) return;
+  const idx = [0, 1, 2, 3].sort(() => Math.random() - 0.5);
+  quizMap = idx;
+  document.getElementById("qcat").textContent = "KI-Frage \u00b7 " + quizQ.diff + (quizQ.kracher ? " \u00b7 Kracher" : "");
+  document.getElementById("qcat").className = "qbadge " + quizQ.diff.toLowerCase();
+  document.getElementById("qtext").textContent = quizQ.q;
+  const wrap = document.getElementById("qopts");
+  wrap.innerHTML = "";
+  for (let i = 0; i < 4; i++) {
+    const btn = document.createElement("button");
+    btn.className = "qopt";
+    btn.innerHTML = '<span class="letter">' + "ABCD"[i] + "</span>" + quizQ.opts[idx[i]];
+    btn.addEventListener("click", () => resolveQuiz(i));
+    wrap.appendChild(btn);
+  }
+  const fb = document.getElementById("qfeedback");
+  fb.className = ""; fb.innerHTML = "";
+  document.getElementById("quizBtn").style.display = "none";
+  document.getElementById("quizOverlay").classList.remove("hidden");
+  document.getElementById("ctrl").style.display = "none";
+  quizT = 15;
+  state = "quiz";
+}
+function resolveQuiz(choice) {
+  if (state !== "quiz" || quizT <= -1) return;
+  quizT = -2;
+  quizTotal++;
+  const correct = quizMap[choice] === quizQ.a;
+  const btns = document.querySelectorAll("#qopts .qopt");
+  btns.forEach((btn, i) => {
+    if (quizMap[i] === quizQ.a) btn.classList.add("good");
+    else if (i === choice) btn.classList.add("bad");
+    else btn.classList.add("dim");
+  });
+  const fb = document.getElementById("qfeedback");
+  if (correct) {
+    quizRight++;
+    bonus += 3;
+    updateHud();
+    sFish();
+    fb.className = "ok";
+    fb.innerHTML = "<b>Richtig! +3 Bonuspunkte</b>" + (quizQ.expl ? "<br>" + quizQ.expl : "");
+  } else {
+    sHurt();
+    fb.className = "no";
+    fb.innerHTML = "<b>" + (choice === -1 ? "Zeit abgelaufen!" : "Leider falsch.") + "</b>" + (quizQ.expl ? "<br>" + quizQ.expl : "");
+  }
+  document.getElementById("quizBtn").style.display = "inline-block";
+}
+function closeQuiz() {
+  document.getElementById("quizOverlay").classList.add("hidden");
+  if (isTouch) document.getElementById("ctrl").style.display = "flex";
+  quizBeacon.used = true;
+  state = "play";
+  last = performance.now();
+}
+document.getElementById("quizBtn").addEventListener("click", () => { if (state === "quiz" && quizT <= -1) closeQuiz(); });
+addEventListener("keydown", e => {
+  if (state === "quiz") {
+    if (["1", "2", "3", "4"].includes(e.key)) resolveQuiz(parseInt(e.key) - 1);
+    if (e.key === "Enter" && quizT <= -1) closeQuiz();
+  }
+});
+
+function drawBeacons() {
+  for (const b of quizBeacons) {
+    if (b.used) continue;
+    const bob = Math.sin(time * 2.5 + b.x) * 5;
+    const bx = b.x + TILE / 2, by = b.y - 8 + bob;
+    ctx.fillStyle = "rgba(92,225,230,.25)";
+    ctx.beginPath(); ctx.ellipse(bx, b.y + TILE - 6, 20, 6, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = BLUE;
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.roundRect(bx - 17, by - 92, 34, 84, 12); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,.35)";
+    ctx.beginPath(); ctx.roundRect(bx - 12, by - 86, 8, 60, 5); ctx.fill();
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 34px Verdana, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("?", bx, by - 36);
+    ctx.fillStyle = PINK;
+    ctx.globalAlpha = 0.5 + Math.sin(time * 4 + b.x) * 0.3;
+    ctx.beginPath(); ctx.arc(bx, by - 100 - bob * 0.5, 4, 0, 7); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
 }
 
 function drawFish(x, y, s, col) {
@@ -606,6 +757,7 @@ function draw() {
   }
 
   if (goal) drawGoal();
+  drawBeacons();
 
   for (const d of player.dust) {
     ctx.fillStyle = "rgba(255,255,255," + Math.max(0, d.a) * 0.8 + ")";

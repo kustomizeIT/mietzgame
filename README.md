@@ -25,6 +25,18 @@ Einfach `index.html` auf einen Webserver hochlegen (z. B. `https://deine-webseit
 
 Kustomizes Kopf stammt **direkt aus der Original-SVG** des Maskottchens (via `kustomize_head.png` als Data-URI eingebettet): exaktes Gesicht mit grünem Fellfleck über dem rechten Auge bis zur Stirn, Weißeck, Schnurrhaaren. Blinzeln/geschlossene Augen werden als Fellfarben-Überlagerung auf dem SVG-Kopf animiert.
 
+## KI-Quiz
+
+Passend zur Marke gibt es **5 Quiz-S&auml;ulen** (schwebende &bdquo;?&ldquo;-Stationen) im Level:
+
+- Ber&uuml;hren &ouml;ffnet eine **zuf&auml;llige KI-Frage** (5 pro Durchlauf aus 50, `quiz.json`)
+- **15-Sekunden-Countdown** als Balken &ndash; verhindert Googeln; l&auml;uft er ab, gilt die Frage als falsch
+- Antwortoptionen werden **gemischt** (Tasten 1&ndash;4 oder antippen)
+- **Richtig: +3 Bonuspunkte** (Stern-Z&auml;hler), danach erscheint die kurze Erkl&auml;rung
+- Falsch/Timeout: Aufl&ouml;sung mit Erkl&auml;rung, 0 Punkte
+- Das Spiel pausiert w&auml;hrend des Quiz; die Statistik erscheint im Sieg-Screen
+- Fragenkatalog: Grundlagen, Modelle &amp; Technik, Datenschutz/DSGVO, EU AI Act, Alltag &amp; Beruf (F01&ndash;F50, inkl. Schwierigkeitsgrad- und &bdquo;Kracher&ldquo;-Badge)
+
 ## Animationen
 
 Mietz wird prozedural in Canvas gezeichnet (kein starres Bild) und reagiert auf das Spielverhalten:
@@ -57,6 +69,7 @@ Alternativ: `index.html` einfach in einen beliebigen Ordner der bestehenden Webs
 - `build.py` – generiert `index.html` aus der Vorlage (Level einbetten)
 - `kustomize_head.png` – Kopf aus der Original-Maskottchen-SVG für die Spielfigur (als Data-URI eingebettet)
 - `kustomize_intro.png` – Original-Maskottchen für das Intro-Zitat (aus der SVG gerendert)
+- `quiz.json` – 50 KI-Quizfragen (aus dem Fragenkatalog generiert; wird per `build.py` eingebettet)
 - `logo_small.png` – kustomize.it-Logo für das Intro (als Data-URI eingebettet)
 
 ## Level anpassen
