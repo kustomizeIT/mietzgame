@@ -153,6 +153,10 @@ const POSES = {
   sleep:    { img: new Image(), ax: 146 }
 };
 for (const k in POSE_SRC) POSES[k].img.src = POSE_SRC[k];
+const RP_SRC = { ff: "__RP_FF_B64__", fb: "__RP_FB_B64__", tail: "__RP_TAIL_B64__", body: "__RP_BODY_B64__", head: "__RP_HEAD_B64__" };
+const RUNPARTS = {};
+for (const k in RP_SRC) { RUNPARTS[k] = new Image(); RUNPARTS[k].src = RP_SRC[k]; }
+const RP_OK = () => Object.keys(RUNPARTS).every(k => RUNPARTS[k].complete && RUNPARTS[k].naturalWidth);
 const CAT_S = 64 / 352;
 
 let scale = 1, viewW = 1280, worldOffY = 0;
@@ -797,7 +801,22 @@ function drawCat() {
   } else if (pose === "sleep") {
     ctx.translate(0, Math.sin(time * 2.2) * 1.2);
   }
-  if (P.img.complete && P.img.naturalWidth) {
+  if (pose === "run" && RP_OK()) {
+    const ax = P.ax, cyc = p.anim * 1.1;
+    const bob = -Math.abs(Math.sin(cyc)) * 3.5;
+    const part = (img, px, py, rot, dy) => {
+      ctx.save();
+      ctx.translate((px - ax) * s, (py - 359) * s + (dy || 0));
+      ctx.rotate(rot);
+      ctx.drawImage(img, -px * s, -py * s, img.width * s, img.height * s);
+      ctx.restore();
+    };
+    part(RUNPARTS.fb, 96, 262, Math.sin(cyc + Math.PI) * 0.3);
+    part(RUNPARTS.ff, 232, 258, Math.sin(cyc) * 0.3);
+    part(RUNPARTS.tail, 170, 252, Math.sin(cyc * 0.5 + 1) * 0.15, bob);
+    ctx.drawImage(RUNPARTS.body, -ax * s, -359 * s + bob, RUNPARTS.body.width * s, RUNPARTS.body.height * s);
+    ctx.drawImage(RUNPARTS.head, -ax * s, -359 * s + bob * 1.15, RUNPARTS.head.width * s, RUNPARTS.head.height * s);
+  } else if (P.img.complete && P.img.naturalWidth) {
     ctx.drawImage(P.img, -P.ax * s, -359 * s, P.img.width * s, P.img.height * s);
   } else {
     ctx.fillStyle = "#fff";
