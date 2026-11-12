@@ -48,6 +48,7 @@
 <div id="hud" class="hidden">
   <div class="hudbox"><span id="hearts"></span></div>
   <div class="hudbox"><svg id="fishIco" viewBox="0 0 22 16"><path d="M1 8l6-6h9l5 6-5 6H7z" fill="#5CE1E6"/><circle cx="7" cy="7" r="1.4" fill="#282E3B"/></svg><span id="fishCount">0</span></div>
+  <div class="hudbox"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 2l2.6 6.6L21 9.3l-5 4.4 1.5 6.8L12 17l-5.5 3.5L8 13.7 3 9.3l6.4-.7z" fill="#FF66C4"/></svg><span id="bonusCount">0</span></div>
 </div>
 
 <div id="ctrl">
@@ -136,6 +137,7 @@ const solidAt = (c, r) => r >= 0 && r < ROWS && c >= 0 && c < COLS && LEVEL[r][c
 const platAt = (c, r) => r >= 0 && r < ROWS && c >= 0 && c < COLS && LEVEL[r][c] === "=";
 
 let fishes = [], enemies = [], movers = [], goal = null, spawn = { x: 100, y: 100 };
+let floats = [], sparks = [], bonus = 0;
 function parseLevel() {
   fishes = []; enemies = []; movers = []; goal = null;
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
@@ -163,6 +165,7 @@ function resetPlayer() {
 }
 function startGame() {
   parseLevel(); lives = 3; score = 0; time = 0; confetti = [];
+  floats = []; sparks = []; bonus = 0;
   resetPlayer();
   document.getElementById("startOverlay").classList.add("hidden");
   document.getElementById("winOverlay").classList.add("hidden");
@@ -183,6 +186,7 @@ function updateHud() {
     h.appendChild(s);
   }
   document.getElementById("fishCount").textContent = score + "/" + fishes.length;
+  document.getElementById("bonusCount").textContent = bonus;
 }
 
 const input = { left: false, right: false, jump: false };
@@ -350,7 +354,20 @@ function update(dt) {
       f.taken = true; score++; sFish(); updateHud();
     }
   }
+  for (const f of floats) f.t += dt;
+  floats = floats.filter(f => f.t < 1);
+  for (const s of sparks) { s.t += dt; s.x += s.vx * dt; s.y += s.vy * dt; s.rot += dt * 6; }
+  sparks = sparks.filter(s => s.t < 0.6);
+
   for (const e of enemies) {
+    if (e.gone) continue;
+    if (e.ko) {
+      e.koT += dt; e.vy += 2600 * dt;
+      e.x += e.vx * dt; e.y += e.vy * dt;
+      e.rot += e.spin * dt;
+      if (e.koT > 1.4) e.gone = true;
+      continue;
+    }
     if (e.dead > 0) { e.dead -= dt; continue; }
     e.vy = (e.vy || 0) + 2600 * dt;
     e.onGround = false;
@@ -365,7 +382,19 @@ function update(dt) {
 
     if (pRect.x < e.x + e.w && pRect.x + pRect.w > e.x && pRect.y < e.y + e.h && pRect.y + pRect.h > e.y) {
       if (player.vy > 150 && player.y + player.h - e.y < 40) {
-        e.dead = 0.5; e.sq = 1; player.vy = -620; sStomp();
+        e.ko = true; e.koT = 0; e.rot = 0;
+        e.vy = -560; e.vx = (Math.random() < 0.5 ? -1 : 1) * 150;
+        e.spin = (Math.random() < 0.5 ? -1 : 1) * 9;
+        player.vy = -620; sStomp();
+        bonus++;
+        floats.push({ x: e.x + e.w / 2, y: e.y - 8, t: 0 });
+        for (let i = 0; i < 6; i++) sparks.push({
+          x: e.x + e.w / 2, y: e.y + e.h / 2,
+          vx: (Math.random() - 0.5) * 300, vy: (Math.random() - 0.7) * 260,
+          t: 0, rot: Math.random() * 6,
+          c: [GREEN, PINK, BLUE, "#fff"][Math.floor(Math.random() * 4)]
+        });
+        updateHud();
       } else loseLife(false);
     }
   }
@@ -408,10 +437,18 @@ function drawFish(x, y, s, col) {
 }
 
 function drawEnemy(e) {
-  const sq = e.dead > 0 ? 1 - e.dead * 1.4 : 1;
+  if (e.gone) return;
+  const sq = e.ko ? 1 : (e.dead > 0 ? 1 - e.dead * 1.4 : 1);
   const h = e.h * Math.max(0.15, sq);
   ctx.save();
   ctx.translate(e.x + e.w / 2, e.y + e.h);
+  if (e.ko) {
+    ctx.rotate(e.rot);
+    ctx.translate(0, -e.h / 2);
+    const sh = Math.max(0.1, 1 - e.koT * 0.5);
+    ctx.scale(sh, sh);
+    ctx.translate(0, e.h / 2);
+  }
   ctx.scale(1, Math.max(0.15, sq));
   ctx.fillStyle = BLUE;
   ctx.beginPath();
@@ -423,8 +460,19 @@ function drawEnemy(e) {
   const ex = e.vx > 0 ? 4 : -4;
   ctx.beginPath(); ctx.arc(-10 + ex, -h + 14, 7, 0, 7); ctx.arc(10 + ex, -h + 14, 7, 0, 7); ctx.fill();
   ctx.fillStyle = NAVY;
-  const look = e.vx > 0 ? 2.5 : -2.5;
-  ctx.beginPath(); ctx.arc(-10 + ex + look, -h + 14, 3, 0, 7); ctx.arc(10 + ex + look, -h + 14, 3, 0, 7); ctx.fill();
+  if (e.ko) {
+    ctx.strokeStyle = NAVY;
+    ctx.lineWidth = 2.5;
+    for (const exx of [-10 + ex, 10 + ex]) {
+      ctx.beginPath();
+      ctx.moveTo(exx - 3.5, -h + 10.5); ctx.lineTo(exx + 3.5, -h + 17.5);
+      ctx.moveTo(exx + 3.5, -h + 10.5); ctx.lineTo(exx - 3.5, -h + 17.5);
+      ctx.stroke();
+    }
+  } else {
+    const look = e.vx > 0 ? 2.5 : -2.5;
+    ctx.beginPath(); ctx.arc(-10 + ex + look, -h + 14, 3, 0, 7); ctx.arc(10 + ex + look, -h + 14, 3, 0, 7); ctx.fill();
+  }
   ctx.strokeStyle = PINK; ctx.lineWidth = 3;
   ctx.beginPath(); ctx.moveTo(0, -h); ctx.lineTo(0, -h - 10); ctx.stroke();
   ctx.fillStyle = PINK;
@@ -527,7 +575,33 @@ function draw() {
     drawFish(f.x, f.y + Math.sin(f.t) * 5, 1, PINK);
   }
 
-  for (const e of enemies) if (e.dead <= 0 || e.dead > 0.2) drawEnemy(e);
+  for (const e of enemies) if (!e.gone && (e.ko || e.dead <= 0 || e.dead > 0.2)) drawEnemy(e);
+
+  for (const s of sparks) {
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    ctx.rotate(s.rot);
+    ctx.fillStyle = s.c;
+    const a = Math.max(0, 1 - s.t / 0.6);
+    ctx.globalAlpha = a;
+    ctx.beginPath();
+    for (let i = 0; i < 4; i++) {
+      ctx.rotate(Math.PI / 2);
+      ctx.moveTo(0, 0); ctx.lineTo(2, 6); ctx.lineTo(-2, 6);
+    }
+    ctx.fill();
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+
+  for (const f of floats) {
+    ctx.globalAlpha = Math.max(0, 1 - f.t);
+    ctx.fillStyle = PINK;
+    ctx.font = "bold 26px Verdana, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("+1", f.x, f.y - f.t * 50);
+    ctx.globalAlpha = 1;
+  }
 
   if (goal) drawGoal();
 
@@ -556,20 +630,30 @@ function catHead(hx, hy, r, eyeMode, tilt) {
   ctx.strokeStyle = GREEN;
   ctx.lineWidth = 2.5;
   ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.fill(); ctx.stroke();
+  ctx.save();
+  ctx.beginPath(); ctx.arc(0, 0, r - 1, 0, 7); ctx.clip();
+  ctx.fillStyle = GREEN;
+  ctx.beginPath();
+  ctx.ellipse(-r * 0.42, -r * 0.02, r * 0.62, r * 0.78, 0.12, 0, 7);
+  ctx.fill();
+  ctx.restore();
   const eh = r * 0.62;
   for (const s of [-1, 1]) {
-    ctx.fillStyle = GREEN;
+    const greenEar = s === -1;
+    ctx.fillStyle = greenEar ? GREEN : "#fff";
     ctx.beginPath();
     ctx.moveTo(s * r * 0.28, -r * 0.72);
     ctx.lineTo(s * r * 0.82, -r - eh * 0.9);
     ctx.lineTo(s * r * 0.88, -r * 0.38);
     ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = "#cde9da";
-    ctx.beginPath();
-    ctx.moveTo(s * r * 0.44, -r * 0.68);
-    ctx.lineTo(s * r * 0.72, -r - eh * 0.45);
-    ctx.lineTo(s * r * 0.74, -r * 0.48);
-    ctx.closePath(); ctx.fill();
+    if (greenEar) {
+      ctx.fillStyle = "#cde9da";
+      ctx.beginPath();
+      ctx.moveTo(s * r * 0.44, -r * 0.68);
+      ctx.lineTo(s * r * 0.72, -r - eh * 0.45);
+      ctx.lineTo(s * r * 0.74, -r * 0.48);
+      ctx.closePath(); ctx.fill();
+    }
   }
   const ey = -r * 0.05, ex = r * 0.42, er = r * 0.3;
   for (const s of [-1, 1]) {
@@ -598,8 +682,6 @@ function catHead(hx, hy, r, eyeMode, tilt) {
       ctx.stroke();
     }
   }
-  ctx.fillStyle = "rgba(140,201,165,.55)";
-  ctx.beginPath(); ctx.ellipse(-r * 0.62, r * 0.28, r * 0.2, r * 0.15, 0, 0, 7); ctx.fill();
   ctx.fillStyle = NAVY;
   ctx.beginPath();
   ctx.moveTo(-2.6, r * 0.42); ctx.lineTo(2.6, r * 0.42); ctx.lineTo(0, r * 0.42 + 3); ctx.closePath(); ctx.fill();

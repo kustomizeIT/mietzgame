@@ -17,9 +17,13 @@ Einfach `index.html` auf einen Webserver hochlegen (z. B. `https://deine-webseit
 ## Features
 
 - 37 rosa Fische sammeln, 3 Leben (Herzen)
-- Staubsauber-Roboter: draufspringen schaltet sie aus
+- Staubsauber-Roboter: draufspringen lässt sie albern davonfliegen (X-Augen, Funken) – gibt einen rosa Bonuspunkt (+1, Stern-Zähler im HUD)
 - Bewegliche Plattform, Ziel-Körbchen mit Fahne
 - Sound-Effekte (WebAudio, keine Audiodateien)
+
+## Aussehen
+
+Kustomizes Gesicht ist an das Original-Maskottchen angepasst: grüner Fellfleck über dem linken Auge bis zur Stirn, linkes Ohr grün, rechtes Ohr weiß mit grüner Kontur.
 
 ## Animationen
 
