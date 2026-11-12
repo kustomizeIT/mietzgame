@@ -21,6 +21,8 @@ for c in [12, 28, 44, 62, 80, 98, 116, 132, 148]:
 grid[11][72] = "m"
 grid[12][2] = "P"
 grid[12][166] = "G"
+for c in [16, 48, 85, 111, 153]:
+    grid[12][c] = "Q"
 
 level = ["".join(r) for r in grid]
 assert all(len(r) == COLS for r in level)
@@ -29,11 +31,19 @@ js_level = "[\n" + ",\n".join('"%s"' % r for r in level) + "\n]"
 def datauri(path):
     return "data:image/png;base64," + base64.b64encode(open(path, "rb").read()).decode()
 
+import json as _json
+quiz = _json.load(open("quiz.json"))
+
 html = open("game.template.html").read()
-assert "__LEVEL__" in html and "__LOGO_B64__" in html and "__MIETZ_B64__" in html and "__HEAD_B64__" in html
+assert "__LEVEL__" in html and "__LOGO_B64__" in html and "__MIETZ_B64__" in html and "__QUIZ__" in html
+assert all(p in html for p in ["__SIT_B64__", "__RUN_B64__", "__LAND_B64__", "__JUMP_B64__"])
 html = html.replace("__LEVEL__", js_level)
+html = html.replace("__QUIZ__", _json.dumps(quiz, ensure_ascii=False, separators=(",", ":")))
 html = html.replace("__LOGO_B64__", datauri("logo_small.png"))
 html = html.replace("__MIETZ_B64__", datauri("kustomize_intro.png"))
-html = html.replace("__HEAD_B64__", datauri("kustomize_head.png"))
+html = html.replace("__SIT_B64__", datauri("svg_sit.png"))
+html = html.replace("__RUN_B64__", datauri("svg_run.png"))
+html = html.replace("__LAND_B64__", datauri("svg_land.png"))
+html = html.replace("__JUMP_B64__", datauri("svg_jump.png"))
 open("index.html", "w").write(html)
 print("index.html geschrieben:", len(html), "Bytes")

@@ -40,6 +40,29 @@
   #jumpBtn { background:rgba(255,102,196,.35); border-color:rgba(255,102,196,.7); width:86px; height:86px; font-size:34px; }
   #jumpBtn:active, #jumpBtn.on { background:rgba(255,102,196,.8); }
   .hidden { display:none !important; }
+  #quizOverlay { background:rgba(24,29,35,.92); }
+  #quizCard { max-width:520px; padding:20px 20px 22px; }
+  .qtop { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px; }
+  .qbadge { background:var(--green); color:#fff; border-radius:999px; padding:4px 12px; font-size:12px; font-weight:bold; letter-spacing:1px; }
+  .qbadge.schwer { background:var(--pink); }
+  .qbadge.mittel { background:#5bb8c9; }
+  #qtimerWrap { flex:1; height:10px; background:#e2e8e4; border-radius:999px; overflow:hidden; }
+  #qtimerFill { height:100%; width:100%; background:var(--green); border-radius:999px; transition:width .1s linear; }
+  #qtimerFill.low { background:var(--pink); }
+  #qtext { color:var(--navy); font-size:clamp(15px,4.2vw,18px); font-weight:bold; line-height:1.4; margin-bottom:14px; text-align:left; }
+  .qopt { display:block; width:100%; text-align:left; background:#f4f9f6; border:2px solid var(--green); border-radius:14px; padding:10px 12px 10px 40px; margin:7px 0; font-size:clamp(13px,3.6vw,15px); line-height:1.35; color:var(--navy); cursor:pointer; position:relative; font-family:inherit; }
+  .qopt .letter { position:absolute; left:10px; top:50%; transform:translateY(-50%); width:22px; height:22px; border-radius:50%; background:var(--green); color:#fff; font-weight:bold; font-size:13px; display:flex; align-items:center; justify-content:center; }
+  .qopt:active { transform:scale(.99); }
+  .qopt.good { background:var(--green); border-color:var(--green); color:#fff; }
+  .qopt.good .letter { background:#fff; color:var(--green); }
+  .qopt.bad { background:var(--pink); border-color:var(--pink); color:#fff; }
+  .qopt.bad .letter { background:#fff; color:var(--pink); }
+  .qopt.dim { opacity:.45; }
+  #qfeedback { border-radius:12px; padding:10px 12px; margin-top:10px; font-size:clamp(12px,3.4vw,14px); line-height:1.45; text-align:left; display:none; }
+  #qfeedback.ok { background:#e6f6ec; color:#1c5c33; display:block; }
+  #qfeedback.no { background:#fde9f5; color:#8a2b66; display:block; }
+  #qfeedback b { display:block; margin-bottom:4px; font-size:1.05em; }
+  #quizBtn { display:none; margin-top:14px; }
 </style>
 </head>
 <body>
@@ -77,6 +100,20 @@
   </div>
 </div>
 
+<div class="overlay hidden" id="quizOverlay">
+  <div class="card" id="quizCard">
+    <div class="qtop">
+      <span class="qbadge" id="qcat">KI-Frage</span>
+      <div id="qtimerWrap"><div id="qtimerFill"></div></div>
+      <span id="qsec">15</span>
+    </div>
+    <p id="qtext">Frage</p>
+    <div id="qopts"></div>
+    <div id="qfeedback"></div>
+    <button class="btn" id="quizBtn">Weiter &raquo;</button>
+  </div>
+</div>
+
 <div class="overlay hidden" id="winOverlay">
   <div class="card">
     <h2>Miau! Geschafft!</h2>
@@ -96,6 +133,7 @@
 <script>
 "use strict";
 const LEVEL = __LEVEL__;
+const QUIZ = __QUIZ__;
 const TILE = 48;
 const ROWS = LEVEL.length;
 const COLS = LEVEL[0].length;
@@ -104,8 +142,15 @@ const VIEW_H = 720;
 
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
-const headImg = new Image();
-headImg.src = "__HEAD_B64__";
+const POSE_SRC = { sit: "__SIT_B64__", run: "__RUN_B64__", land: "__LAND_B64__", jump: "__JUMP_B64__" };
+const POSES = {
+  sit:  { img: new Image(), ax: 177, eye: [266, 99], er: 24 },
+  run:  { img: new Image(), ax: 166 },
+  land: { img: new Image(), ax: 146, eye: [261, 122], er: 23 },
+  jump: { img: new Image(), ax: 196 }
+};
+for (const k in POSE_SRC) POSES[k].img.src = POSE_SRC[k];
+const CAT_S = 64 / 352;
 
 let scale = 1, viewW = 1280, worldOffY = 0;
 function resize() {
@@ -124,8 +169,9 @@ const platAt = (c, r) => r >= 0 && r < ROWS && c >= 0 && c < COLS && LEVEL[r][c]
 
 let fishes = [], enemies = [], movers = [], goal = null, spawn = { x: 100, y: 100 };
 let floats = [], sparks = [], bonus = 0;
+let quizBeacons = [], quizPool = [], quizQ = null, quizMap = [], quizT = 0, quizRight = 0, quizTotal = 0, quizBeacon = null;
 function parseLevel() {
-  fishes = []; enemies = []; movers = []; goal = null;
+  fishes = []; enemies = []; movers = []; goal = null; quizBeacons = [];
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
     const ch = LEVEL[r][c];
     if (ch === "f") fishes.push({ x: c * TILE + TILE / 2, y: r * TILE + TILE / 2, taken: false, t: Math.random() * 6 });
@@ -133,6 +179,7 @@ function parseLevel() {
     else if (ch === "m") movers.push({ x: c * TILE - TILE, y: r * TILE, w: TILE * 3, h: 22, dir: 1, min: c * TILE - TILE - 3 * TILE, max: c * TILE - TILE + 3 * TILE, dx: 0 });
     else if (ch === "P") spawn = { x: c * TILE, y: (r + 1) * TILE - 64 };
     else if (ch === "G") goal = { x: c * TILE, y: r * TILE };
+    else if (ch === "Q") quizBeacons.push({ x: c * TILE, y: r * TILE, used: false });
   }
 }
 parseLevel();
@@ -152,6 +199,8 @@ function resetPlayer() {
 function startGame() {
   parseLevel(); lives = 3; score = 0; time = 0; confetti = [];
   floats = []; sparks = []; bonus = 0;
+  quizPool = QUIZ.slice().sort(() => Math.random() - 0.5).slice(0, 5);
+  quizRight = 0; quizTotal = 0;
   resetPlayer();
   document.getElementById("startOverlay").classList.add("hidden");
   document.getElementById("winOverlay").classList.add("hidden");
@@ -281,6 +330,15 @@ function loseLife(respawn) {
 
 function update(dt) {
   time += dt;
+  if (state === "quiz") {
+    quizT -= dt;
+    const fill = document.getElementById("qtimerFill");
+    fill.style.width = Math.max(0, quizT / 15 * 100) + "%";
+    fill.classList.toggle("low", quizT < 5);
+    document.getElementById("qsec").textContent = Math.max(0, Math.ceil(quizT));
+    if (quizT <= 0) resolveQuiz(-1);
+    return;
+  }
   for (const m of movers) {
     m.dx = m.dir * 110 * dt;
     m.x += m.dx;
@@ -385,11 +443,20 @@ function update(dt) {
     }
   }
 
+  for (const b of quizBeacons) {
+    if (!b.used && player.x + player.w > b.x && player.x < b.x + TILE &&
+        player.y + player.h > b.y - TILE * 2 && player.y < b.y + TILE) {
+      openQuiz(b);
+      break;
+    }
+  }
+
   if (goal && player.x + player.w > goal.x + 8 && player.x < goal.x + TILE * 1.5 &&
       player.y + player.h > goal.y - TILE * 2) {
     state = "win";
     document.getElementById("winText").innerHTML =
-      "Kustomize hat das K&ouml;rbchen erreicht!<br><b>" + score + " von " + fishes.length + " Fischen</b> gesammelt.";
+      "Kustomize hat das K&ouml;rbchen erreicht!<br><b>" + score + " von " + fishes.length + " Fischen</b> gesammelt." +
+      (quizTotal > 0 ? "<br><b>Quiz: " + quizRight + " von " + quizTotal + " Fragen</b> richtig &ndash; +" + (quizRight * 3) + " Bonuspunkte" : "");
     document.getElementById("winOverlay").classList.remove("hidden");
     document.getElementById("ctrl").style.display = "none";
     sWin();
@@ -402,6 +469,97 @@ function update(dt) {
 
   const target = Math.max(0, Math.min(player.x - viewW * 0.42, COLS * TILE - viewW));
   camX += (target - camX) * Math.min(1, dt * 6);
+}
+
+function openQuiz(b) {
+  quizBeacon = b;
+  quizQ = quizPool.pop();
+  if (!quizQ) return;
+  const idx = [0, 1, 2, 3].sort(() => Math.random() - 0.5);
+  quizMap = idx;
+  document.getElementById("qcat").textContent = "KI-Frage \u00b7 " + quizQ.diff + (quizQ.kracher ? " \u00b7 Kracher" : "");
+  document.getElementById("qcat").className = "qbadge " + quizQ.diff.toLowerCase();
+  document.getElementById("qtext").textContent = quizQ.q;
+  const wrap = document.getElementById("qopts");
+  wrap.innerHTML = "";
+  for (let i = 0; i < 4; i++) {
+    const btn = document.createElement("button");
+    btn.className = "qopt";
+    btn.innerHTML = '<span class="letter">' + "ABCD"[i] + "</span>" + quizQ.opts[idx[i]];
+    btn.addEventListener("click", () => resolveQuiz(i));
+    wrap.appendChild(btn);
+  }
+  const fb = document.getElementById("qfeedback");
+  fb.className = ""; fb.innerHTML = "";
+  document.getElementById("quizBtn").style.display = "none";
+  document.getElementById("quizOverlay").classList.remove("hidden");
+  document.getElementById("ctrl").style.display = "none";
+  quizT = 15;
+  state = "quiz";
+}
+function resolveQuiz(choice) {
+  if (state !== "quiz" || quizT <= -1) return;
+  quizT = -2;
+  quizTotal++;
+  const correct = quizMap[choice] === quizQ.a;
+  const btns = document.querySelectorAll("#qopts .qopt");
+  btns.forEach((btn, i) => {
+    if (quizMap[i] === quizQ.a) btn.classList.add("good");
+    else if (i === choice) btn.classList.add("bad");
+    else btn.classList.add("dim");
+  });
+  const fb = document.getElementById("qfeedback");
+  if (correct) {
+    quizRight++;
+    bonus += 3;
+    updateHud();
+    sFish();
+    fb.className = "ok";
+    fb.innerHTML = "<b>Richtig! +3 Bonuspunkte</b>" + (quizQ.expl ? "<br>" + quizQ.expl : "");
+  } else {
+    sHurt();
+    fb.className = "no";
+    fb.innerHTML = "<b>" + (choice === -1 ? "Zeit abgelaufen!" : "Leider falsch.") + "</b>" + (quizQ.expl ? "<br>" + quizQ.expl : "");
+  }
+  document.getElementById("quizBtn").style.display = "inline-block";
+}
+function closeQuiz() {
+  document.getElementById("quizOverlay").classList.add("hidden");
+  if (isTouch) document.getElementById("ctrl").style.display = "flex";
+  quizBeacon.used = true;
+  state = "play";
+  last = performance.now();
+}
+document.getElementById("quizBtn").addEventListener("click", () => { if (state === "quiz" && quizT <= -1) closeQuiz(); });
+addEventListener("keydown", e => {
+  if (state === "quiz") {
+    if (["1", "2", "3", "4"].includes(e.key)) resolveQuiz(parseInt(e.key) - 1);
+    if (e.key === "Enter" && quizT <= -1) closeQuiz();
+  }
+});
+
+function drawBeacons() {
+  for (const b of quizBeacons) {
+    if (b.used) continue;
+    const bob = Math.sin(time * 2.5 + b.x) * 5;
+    const bx = b.x + TILE / 2, by = b.y - 8 + bob;
+    ctx.fillStyle = "rgba(92,225,230,.25)";
+    ctx.beginPath(); ctx.ellipse(bx, b.y + TILE - 6, 20, 6, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = BLUE;
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.roundRect(bx - 17, by - 92, 34, 84, 12); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,.35)";
+    ctx.beginPath(); ctx.roundRect(bx - 12, by - 86, 8, 60, 5); ctx.fill();
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 34px Verdana, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("?", bx, by - 36);
+    ctx.fillStyle = PINK;
+    ctx.globalAlpha = 0.5 + Math.sin(time * 4 + b.x) * 0.3;
+    ctx.beginPath(); ctx.arc(bx, by - 100 - bob * 0.5, 4, 0, 7); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
 }
 
 function drawFish(x, y, s, col) {
@@ -590,6 +748,7 @@ function draw() {
   }
 
   if (goal) drawGoal();
+  drawBeacons();
 
   for (const d of player.dust) {
     ctx.fillStyle = "rgba(255,255,255," + Math.max(0, d.a) * 0.8 + ")";
@@ -608,77 +767,18 @@ function draw() {
   ctx.restore();
 }
 
-function drawHead(hx, hy, r, eyeMode, tilt) {
-  const HW = r * 3.4, HH = HW * 0.5407;
-  ctx.save();
-  ctx.translate(hx, hy);
-  if (tilt) ctx.rotate(tilt);
-  if (headImg.complete && headImg.naturalWidth) {
-    ctx.drawImage(headImg, -HW / 2, -HH / 2, HW, HH);
-  } else {
-    ctx.fillStyle = "#fff";
-    ctx.strokeStyle = GREEN;
-    ctx.lineWidth = 2.5;
-    ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.fill(); ctx.stroke();
-  }
-  if (eyeMode !== 1) {
-    const eyes = [
-      [0.363, "#fff", HW * 0.045],
-      [0.617, GREEN, HW * 0.062]
-    ];
-    for (const [rel, skin, cr] of eyes) {
-      const ex = (rel - 0.5) * HW, ey = 0.152 * HH;
-      ctx.fillStyle = skin;
-      ctx.beginPath(); ctx.arc(ex, ey, cr, 0, 7); ctx.fill();
-      ctx.strokeStyle = GREEN_D;
-      ctx.lineWidth = Math.max(1, HW * 0.024);
-      ctx.lineCap = "round";
-      ctx.beginPath();
-      if (eyeMode === 2) ctx.arc(ex, ey + cr * 0.35, cr + HW * 0.012, Math.PI, 0);
-      else ctx.arc(ex, ey - cr * 0.35, cr + HW * 0.012, 0, Math.PI);
-      ctx.stroke();
-    }
-  }
-  ctx.restore();
-}
-
-function catLeg(hx, phase, far, cyc) {
-  const sw = Math.sin(cyc + phase) * 8;
-  const lift = Math.max(0, Math.cos(cyc + phase)) * 7;
-  ctx.strokeStyle = far ? "#e4efe8" : "#fff";
-  ctx.lineWidth = 7.5;
-  ctx.lineCap = "round";
-  ctx.beginPath(); ctx.moveTo(hx, -18); ctx.lineTo(hx + sw, -4 - lift); ctx.stroke();
-  ctx.strokeStyle = far ? "#c9dccf" : GREEN;
-  ctx.lineWidth = 1.8;
-  ctx.beginPath(); ctx.moveTo(hx, -18); ctx.lineTo(hx + sw, -4 - lift); ctx.stroke();
-  ctx.fillStyle = far ? "#7fbb9a" : GREEN;
-  ctx.beginPath(); ctx.arc(hx + sw, -3.5 - lift, 4.4, 0, 7); ctx.fill();
-}
-
-function catPaw(x, y, r, far) {
-  ctx.fillStyle = far ? "#7fbb9a" : GREEN;
-  ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
-}
-
-function catTail(pose, t) {
-  ctx.strokeStyle = GREEN;
-  ctx.lineWidth = 6;
+function catEyeClosed(P, happy) {
+  const ex = P.eye[0] - P.ax, ey = P.eye[1] - 359;
+  const s = CAT_S;
+  ctx.fillStyle = "#fff";
+  ctx.beginPath(); ctx.arc(ex * s, ey * s, P.er * s + 1.5, 0, 7); ctx.fill();
+  ctx.strokeStyle = GREEN_D;
+  ctx.lineWidth = 3.2;
   ctx.lineCap = "round";
   ctx.beginPath();
-  if (pose === "run" || pose === "jump" || pose === "air") {
-    ctx.moveTo(-13, -18);
-    ctx.quadraticCurveTo(-22, -20 + Math.sin(t * 9) * 2, -27, -30 + Math.sin(t * 9) * 4);
-  } else if (pose === "sleep") {
-    ctx.moveTo(-16, -8);
-    ctx.quadraticCurveTo(-2, 4, 14, -4);
-  } else {
-    ctx.moveTo(-13, -14);
-    ctx.quadraticCurveTo(-6, 2, 9, -4 + Math.sin(t * 2.5) * 2);
-  }
+  if (happy) ctx.arc(ex * s, ey * s + 2, P.er * s * 0.7, Math.PI, 0);
+  else ctx.arc(ex * s, ey * s - 2, P.er * s * 0.7, 0, Math.PI);
   ctx.stroke();
-  ctx.fillStyle = "#fff";
-  ctx.beginPath(); ctx.arc(-27, -30, 0, 0, 7); ctx.fill();
 }
 
 function drawCat() {
@@ -686,100 +786,56 @@ function drawCat() {
   if (p.invuln > 0 && Math.floor(time * 14) % 2 === 0) return;
   const moving = Math.abs(p.vx) > 40;
   let pose;
-  if (!p.onGround) pose = p.vy < -50 ? "jump" : "air";
+  if (!p.onGround) pose = "jump";
   else if (moving) pose = "run";
   else if (p.idleTime > 10) pose = "sleep";
   else if (p.idleTime > 4) pose = "lick";
-  else pose = "idle";
+  else pose = "sit";
+  const P = POSES[pose === "sleep" || pose === "lick" ? (pose === "sleep" ? "land" : "sit") : pose];
 
   ctx.save();
   ctx.translate(p.x + p.w / 2, p.y + p.h);
-  let sx = 1, sy = 1;
-  if (p.landT > 0) { const k = p.landT / 0.22; sx = 1 + 0.28 * k; sy = 1 - 0.32 * k; }
-  else if (!p.onGround) { const st = Math.max(-0.1, Math.min(0.16, p.vy / 4500)); sx = 1 - st; sy = 1 + st; }
-  ctx.scale(sx, sy);
   if (p.face === -1) ctx.scale(-1, 1);
-  if (pose === "run") ctx.rotate(0.08);
-  const t = time;
-  catTail(pose, t);
-
-  if (pose === "sleep") {
-    const br = Math.sin(t * 2.2) * 0.05;
+  const s = CAT_S;
+  if (pose === "run") {
+    ctx.rotate(0.07);
+    ctx.translate(0, -Math.abs(Math.sin(p.anim * 1.1)) * 4);
+  } else if (pose === "jump") {
+    ctx.rotate(p.vy < -50 ? -0.08 : Math.min(0.14, p.vy / 6000));
+  } else if (p.landT > 0) {
+    const k = p.landT / 0.22;
+    ctx.scale(1 + 0.22 * k, 1 - 0.24 * k);
+  } else if (pose === "sleep") {
+    ctx.translate(0, Math.sin(time * 2.2) * 1.2);
+  }
+  if (P.img.complete && P.img.naturalWidth) {
+    ctx.drawImage(P.img, -P.ax * s, -359 * s, P.img.width * s, P.img.height * s);
+  } else {
     ctx.fillStyle = "#fff";
     ctx.strokeStyle = GREEN;
-    ctx.lineWidth = 2.5;
-    ctx.beginPath(); ctx.ellipse(-2, -10, 20, 10 + br * 6, 0, 0, 7); ctx.fill(); ctx.stroke();
-    catPaw(-8, -4, 4.5, false);
-    catPaw(0, -3, 4.5, false);
-    drawHead(12, -15, 13, 0, 0.22);
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.ellipse(0, -32, 20, 30, 0, 0, 7); ctx.fill(); ctx.stroke();
+  }
+  if (pose === "sleep") {
+    catEyeClosed(P, false);
     ctx.fillStyle = NAVY;
-    ctx.font = "bold 15px Verdana, sans-serif";
     for (let i = 0; i < 3; i++) {
-      const zt = ((t * 0.8) + i * 0.33) % 1;
+      const zt = ((time * 0.8) + i * 0.33) % 1;
       ctx.globalAlpha = Math.max(0, 1 - zt) * 0.8;
       ctx.font = "bold " + Math.round(10 + i * 5 + zt * 4) + "px Verdana, sans-serif";
-      ctx.fillText("Z", 20 + i * 7 + zt * 8, -30 - i * 9 - zt * 10);
+      ctx.textAlign = "center";
+      ctx.fillText("Z", (P.eye[0] - P.ax + 14 + i * 8 + zt * 8) * s, (-320 - i * 12 - zt * 12) * s);
     }
     ctx.globalAlpha = 1;
-    ctx.restore();
-    return;
-  }
-
-  const sit = pose === "idle" || pose === "lick";
-  const cyc = p.anim * 1.1;
-  if (pose === "run") {
-    catLeg(-6, Math.PI, true, cyc);
-    catLeg(7, 0, true, cyc);
-  } else if (pose === "jump") {
-    catLeg(-7, 0, true, 0); ctx.lineWidth = 7.5;
-  }
-
-  ctx.fillStyle = "#fff";
-  ctx.strokeStyle = GREEN;
-  ctx.lineWidth = 2.5;
-  const bob = pose === "run" ? Math.abs(Math.sin(cyc)) * -2 : 0;
-  if (sit) {
-    ctx.beginPath(); ctx.ellipse(0, -24 + bob, 15, 21, 0, 0, 7); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = "#fff";
-    ctx.beginPath(); ctx.ellipse(9, -12, 9, 9, 0, 0, 7); ctx.fill();
-  } else {
-    ctx.beginPath(); ctx.ellipse(0, -20 + bob, 16, 15, 0, 0, 7); ctx.fill(); ctx.stroke();
-  }
-
-  if (pose === "run") {
-    catLeg(-6, 0, false, cyc);
-    catLeg(7, Math.PI, false, cyc);
-  } else if (pose === "jump" || pose === "air") {
-    ctx.strokeStyle = "#fff";
-    ctx.lineWidth = 7.5;
-    ctx.lineCap = "round";
-    const l1 = pose === "jump" ? [9, -12] : [8, -2];
-    const l2 = pose === "jump" ? [-9, -6] : [-8, -2];
-    ctx.beginPath(); ctx.moveTo(6, -16); ctx.lineTo(l1[0], l1[1]); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(-6, -16); ctx.lineTo(l2[0], l2[1]); ctx.stroke();
-    catPaw(l1[0], l1[1] + 1, 4.4, false);
-    catPaw(l2[0], l2[1] + 1, 4.4, true);
-  } else {
-    catPaw(-5, -3, 4.6, true);
-    catPaw(5, -3, 4.6, false);
-  }
-
-  let eyeMode = p.blink > 0 ? 0 : 1;
-  let tilt = 0;
-  if (pose === "lick") {
-    eyeMode = 2;
-    tilt = 0.14;
-    ctx.strokeStyle = "#fff";
-    ctx.lineWidth = 7;
-    ctx.lineCap = "round";
-    ctx.beginPath(); ctx.moveTo(9, -22); ctx.lineTo(13, -34); ctx.stroke();
-    catPaw(13, -35, 4.6, false);
-    if (Math.sin(t * 7) > 0.2) {
+  } else if (pose === "lick") {
+    catEyeClosed(P, true);
+    if (Math.sin(time * 5) > -0.3) {
       ctx.fillStyle = PINK;
-      ctx.beginPath(); ctx.ellipse(6, -33, 3, 2, -0.4, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.ellipse((292 - 177) * s, (120 - 359) * s, 7, 4.5, -0.5, 0, 7); ctx.fill();
     }
+  } else if (pose === "sit" && p.blink > 0) {
+    catEyeClosed(P, false);
   }
-  drawHead(0, -48 + bob, 15, eyeMode, tilt);
   ctx.restore();
 }
 
