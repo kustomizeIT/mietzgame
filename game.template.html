@@ -142,13 +142,14 @@ const VIEW_H = 720;
 
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
-const POSE_SRC = { sit: "__SIT_B64__", run: "__RUN_B64__", land: "__LAND_B64__", jump: "__JUMP_B64__", lick: "__LICK_B64__" };
+const POSE_SRC = { sit: "__SIT_B64__", run: "__RUN_B64__", land: "__LAND_B64__", jump: "__JUMP_B64__", lick: "__LICK_B64__", sleep: "__SLEEP_B64__" };
 const POSES = {
   sit:  { img: new Image(), ax: 177, eye: [266, 99], er: 24 },
   run:  { img: new Image(), ax: 166 },
-  land: { img: new Image(), ax: 146, eye: [261, 122], er: 23 },
+  land: { img: new Image(), ax: 146 },
   jump: { img: new Image(), ax: 196 },
-  lick: { img: new Image(), ax: 191, eye: [274, 123], er: 23 }
+  lick: { img: new Image(), ax: 191 },
+  sleep: { img: new Image(), ax: 146 }
 };
 for (const k in POSE_SRC) POSES[k].img.src = POSE_SRC[k];
 const CAT_S = 64 / 352;
@@ -792,7 +793,7 @@ function drawCat() {
   else if (p.idleTime > 10) pose = "sleep";
   else if (p.idleTime > 4) pose = "lick";
   else pose = "sit";
-  const P = POSES[pose === "sleep" ? "land" : pose];
+  const P = POSES[pose];
 
   ctx.save();
   ctx.translate(p.x + p.w / 2, p.y + p.h);
@@ -818,14 +819,13 @@ function drawCat() {
     ctx.beginPath(); ctx.ellipse(0, -32, 20, 30, 0, 0, 7); ctx.fill(); ctx.stroke();
   }
   if (pose === "sleep") {
-    catEyeClosed(P, false);
     ctx.fillStyle = NAVY;
     for (let i = 0; i < 3; i++) {
       const zt = ((time * 0.8) + i * 0.33) % 1;
       ctx.globalAlpha = Math.max(0, 1 - zt) * 0.8;
       ctx.font = "bold " + Math.round(10 + i * 5 + zt * 4) + "px Verdana, sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText("Z", (P.eye[0] - P.ax + 14 + i * 8 + zt * 8) * s, (-320 - i * 12 - zt * 12) * s);
+      ctx.fillText("Z", (250 - P.ax + 14 + i * 8 + zt * 8) * s, (-320 - i * 12 - zt * 12) * s);
     }
     ctx.globalAlpha = 1;
   } else if (pose === "sit" && p.blink > 0) {
