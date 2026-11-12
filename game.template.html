@@ -142,8 +142,18 @@ const VIEW_H = 720;
 
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
-const headImg = new Image();
-headImg.src = "__HEAD_B64__";
+const POSE_SRC = { sit: "__SIT_B64__", sitblink: "__SITBLINK_B64__", run: "__RUN_B64__", land: "__LAND_B64__", jump: "__JUMP_B64__", lick: "__LICK_B64__", sleep: "__SLEEP_B64__" };
+const POSES = {
+  sit:      { img: new Image(), ax: 177 },
+  sitblink: { img: new Image(), ax: 177 },
+  run:      { img: new Image(), ax: 166 },
+  land:     { img: new Image(), ax: 146 },
+  jump:     { img: new Image(), ax: 196 },
+  lick:     { img: new Image(), ax: 191 },
+  sleep:    { img: new Image(), ax: 146 }
+};
+for (const k in POSE_SRC) POSES[k].img.src = POSE_SRC[k];
+const CAT_S = 64 / 352;
 
 let scale = 1, viewW = 1280, worldOffY = 0;
 function resize() {
@@ -449,7 +459,7 @@ function update(dt) {
     state = "win";
     document.getElementById("winText").innerHTML =
       "Kustomize hat das K&ouml;rbchen erreicht!<br><b>" + score + " von " + fishes.length + " Fischen</b> gesammelt." +
-      (quizTotal > 0 ? "<br><b>Quiz: " + quizRight + " von " + quizTotal + " Fragen</b> richtig &ndash; +" + (quizRight * 3) + " Bonuspunkte" : "");
+      (quizTotal > 0 ? "<br><b>Quiz: " + quizRight + " von " + quizTotal + " Fragen</b> richtig &ndash; +" + (quizRight * 5) + " Bonuspunkte" : "");
     document.getElementById("winOverlay").classList.remove("hidden");
     document.getElementById("ctrl").style.display = "none";
     sWin();
@@ -504,11 +514,11 @@ function resolveQuiz(choice) {
   const fb = document.getElementById("qfeedback");
   if (correct) {
     quizRight++;
-    bonus += 3;
+    bonus += 5;
     updateHud();
     sFish();
     fb.className = "ok";
-    fb.innerHTML = "<b>Richtig! +3 Bonuspunkte</b>" + (quizQ.expl ? "<br>" + quizQ.expl : "");
+    fb.innerHTML = "<b>Richtig! +5 Bonuspunkte</b>" + (quizQ.expl ? "<br>" + quizQ.expl : "");
   } else {
     sHurt();
     fb.className = "no";
@@ -760,178 +770,54 @@ function draw() {
   ctx.restore();
 }
 
-function drawHead(hx, hy, r, eyeMode, tilt) {
-  const HW = r * 3.4, HH = HW * 0.5407;
-  ctx.save();
-  ctx.translate(hx, hy);
-  if (tilt) ctx.rotate(tilt);
-  if (headImg.complete && headImg.naturalWidth) {
-    ctx.drawImage(headImg, -HW / 2, -HH / 2, HW, HH);
-  } else {
-    ctx.fillStyle = "#fff";
-    ctx.strokeStyle = GREEN;
-    ctx.lineWidth = 2.5;
-    ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.fill(); ctx.stroke();
-  }
-  if (eyeMode !== 1) {
-    const eyes = [
-      [0.363, "#fff", HW * 0.045],
-      [0.617, GREEN, HW * 0.062]
-    ];
-    for (const [rel, skin, cr] of eyes) {
-      const ex = (rel - 0.5) * HW, ey = 0.152 * HH;
-      ctx.fillStyle = skin;
-      ctx.beginPath(); ctx.arc(ex, ey, cr, 0, 7); ctx.fill();
-      ctx.strokeStyle = GREEN_D;
-      ctx.lineWidth = Math.max(1, HW * 0.024);
-      ctx.lineCap = "round";
-      ctx.beginPath();
-      if (eyeMode === 2) ctx.arc(ex, ey + cr * 0.35, cr + HW * 0.012, Math.PI, 0);
-      else ctx.arc(ex, ey - cr * 0.35, cr + HW * 0.012, 0, Math.PI);
-      ctx.stroke();
-    }
-  }
-  ctx.restore();
-}
-
-function catLeg(hx, phase, far, cyc) {
-  const sw = Math.sin(cyc + phase) * 8;
-  const lift = Math.max(0, Math.cos(cyc + phase)) * 7;
-  ctx.strokeStyle = far ? "#e4efe8" : "#fff";
-  ctx.lineWidth = 7.5;
-  ctx.lineCap = "round";
-  ctx.beginPath(); ctx.moveTo(hx, -18); ctx.lineTo(hx + sw, -4 - lift); ctx.stroke();
-  ctx.strokeStyle = far ? "#c9dccf" : GREEN;
-  ctx.lineWidth = 1.8;
-  ctx.beginPath(); ctx.moveTo(hx, -18); ctx.lineTo(hx + sw, -4 - lift); ctx.stroke();
-  ctx.fillStyle = far ? "#7fbb9a" : GREEN;
-  ctx.beginPath(); ctx.arc(hx + sw, -3.5 - lift, 4.4, 0, 7); ctx.fill();
-}
-
-function catPaw(x, y, r, far) {
-  ctx.fillStyle = far ? "#7fbb9a" : GREEN;
-  ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
-}
-
-function catTail(pose, t) {
-  ctx.strokeStyle = GREEN;
-  ctx.lineWidth = 6;
-  ctx.lineCap = "round";
-  ctx.beginPath();
-  if (pose === "run" || pose === "jump" || pose === "air") {
-    ctx.moveTo(-13, -18);
-    ctx.quadraticCurveTo(-22, -20 + Math.sin(t * 9) * 2, -27, -30 + Math.sin(t * 9) * 4);
-  } else if (pose === "sleep") {
-    ctx.moveTo(-16, -8);
-    ctx.quadraticCurveTo(-2, 4, 14, -4);
-  } else {
-    ctx.moveTo(-13, -14);
-    ctx.quadraticCurveTo(-6, 2, 9, -4 + Math.sin(t * 2.5) * 2);
-  }
-  ctx.stroke();
-  ctx.fillStyle = "#fff";
-  ctx.beginPath(); ctx.arc(-27, -30, 0, 0, 7); ctx.fill();
-}
-
 function drawCat() {
   const p = player;
   if (p.invuln > 0 && Math.floor(time * 14) % 2 === 0) return;
   const moving = Math.abs(p.vx) > 40;
   let pose;
-  if (!p.onGround) pose = p.vy < -50 ? "jump" : "air";
+  if (!p.onGround) pose = "jump";
   else if (moving) pose = "run";
   else if (p.idleTime > 10) pose = "sleep";
   else if (p.idleTime > 4) pose = "lick";
-  else pose = "idle";
+  else pose = "sit";
+  const P = POSES[pose];
 
   ctx.save();
   ctx.translate(p.x + p.w / 2, p.y + p.h);
-  let sx = 1, sy = 1;
-  if (p.landT > 0) { const k = p.landT / 0.22; sx = 1 + 0.28 * k; sy = 1 - 0.32 * k; }
-  else if (!p.onGround) { const st = Math.max(-0.1, Math.min(0.16, p.vy / 4500)); sx = 1 - st; sy = 1 + st; }
-  ctx.scale(sx, sy);
   if (p.face === -1) ctx.scale(-1, 1);
-  if (pose === "run") ctx.rotate(0.08);
-  const t = time;
-  catTail(pose, t);
-
-  if (pose === "sleep") {
-    const br = Math.sin(t * 2.2) * 0.05;
+  const s = CAT_S;
+  if (pose === "run") {
+    ctx.rotate(0.07);
+    ctx.translate(0, -Math.abs(Math.sin(p.anim * 1.1)) * 4);
+  } else if (pose === "jump") {
+    ctx.rotate(p.vy < -50 ? -0.08 : Math.min(0.14, p.vy / 6000));
+  } else if (p.landT > 0) {
+    const k = p.landT / 0.22;
+    ctx.scale(1 + 0.22 * k, 1 - 0.24 * k);
+  } else if (pose === "sleep") {
+    ctx.translate(0, Math.sin(time * 2.2) * 1.2);
+  }
+  if (P.img.complete && P.img.naturalWidth) {
+    ctx.drawImage(P.img, -P.ax * s, -359 * s, P.img.width * s, P.img.height * s);
+  } else {
     ctx.fillStyle = "#fff";
     ctx.strokeStyle = GREEN;
-    ctx.lineWidth = 2.5;
-    ctx.beginPath(); ctx.ellipse(-2, -10, 20, 10 + br * 6, 0, 0, 7); ctx.fill(); ctx.stroke();
-    catPaw(-8, -4, 4.5, false);
-    catPaw(0, -3, 4.5, false);
-    drawHead(12, -15, 13, 0, 0.22);
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.ellipse(0, -32, 20, 30, 0, 0, 7); ctx.fill(); ctx.stroke();
+  }
+  if (pose === "sleep") {
     ctx.fillStyle = NAVY;
-    ctx.font = "bold 15px Verdana, sans-serif";
     for (let i = 0; i < 3; i++) {
-      const zt = ((t * 0.8) + i * 0.33) % 1;
+      const zt = ((time * 0.8) + i * 0.33) % 1;
       ctx.globalAlpha = Math.max(0, 1 - zt) * 0.8;
       ctx.font = "bold " + Math.round(10 + i * 5 + zt * 4) + "px Verdana, sans-serif";
-      ctx.fillText("Z", 20 + i * 7 + zt * 8, -30 - i * 9 - zt * 10);
+      ctx.textAlign = "center";
+      ctx.fillText("Z", (250 - P.ax + 14 + i * 8 + zt * 8) * s, (-320 - i * 12 - zt * 12) * s);
     }
     ctx.globalAlpha = 1;
-    ctx.restore();
-    return;
+  } else if (pose === "sit" && p.blink > 0) {
+    ctx.drawImage(POSES.sitblink.img, -POSES.sitblink.ax * s, -359 * s, POSES.sitblink.img.width * s, POSES.sitblink.img.height * s);
   }
-
-  const sit = pose === "idle" || pose === "lick";
-  const cyc = p.anim * 1.1;
-  if (pose === "run") {
-    catLeg(-6, Math.PI, true, cyc);
-    catLeg(7, 0, true, cyc);
-  } else if (pose === "jump") {
-    catLeg(-7, 0, true, 0); ctx.lineWidth = 7.5;
-  }
-
-  ctx.fillStyle = "#fff";
-  ctx.strokeStyle = GREEN;
-  ctx.lineWidth = 2.5;
-  const bob = pose === "run" ? Math.abs(Math.sin(cyc)) * -2 : 0;
-  if (sit) {
-    ctx.beginPath(); ctx.ellipse(0, -24 + bob, 15, 21, 0, 0, 7); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = "#fff";
-    ctx.beginPath(); ctx.ellipse(9, -12, 9, 9, 0, 0, 7); ctx.fill();
-  } else {
-    ctx.beginPath(); ctx.ellipse(0, -20 + bob, 16, 15, 0, 0, 7); ctx.fill(); ctx.stroke();
-  }
-
-  if (pose === "run") {
-    catLeg(-6, 0, false, cyc);
-    catLeg(7, Math.PI, false, cyc);
-  } else if (pose === "jump" || pose === "air") {
-    ctx.strokeStyle = "#fff";
-    ctx.lineWidth = 7.5;
-    ctx.lineCap = "round";
-    const l1 = pose === "jump" ? [9, -12] : [8, -2];
-    const l2 = pose === "jump" ? [-9, -6] : [-8, -2];
-    ctx.beginPath(); ctx.moveTo(6, -16); ctx.lineTo(l1[0], l1[1]); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(-6, -16); ctx.lineTo(l2[0], l2[1]); ctx.stroke();
-    catPaw(l1[0], l1[1] + 1, 4.4, false);
-    catPaw(l2[0], l2[1] + 1, 4.4, true);
-  } else {
-    catPaw(-5, -3, 4.6, true);
-    catPaw(5, -3, 4.6, false);
-  }
-
-  let eyeMode = p.blink > 0 ? 0 : 1;
-  let tilt = 0;
-  if (pose === "lick") {
-    eyeMode = 2;
-    tilt = 0.14;
-    ctx.strokeStyle = "#fff";
-    ctx.lineWidth = 7;
-    ctx.lineCap = "round";
-    ctx.beginPath(); ctx.moveTo(9, -22); ctx.lineTo(13, -34); ctx.stroke();
-    catPaw(13, -35, 4.6, false);
-    if (Math.sin(t * 7) > 0.2) {
-      ctx.fillStyle = PINK;
-      ctx.beginPath(); ctx.ellipse(6, -33, 3, 2, -0.4, 0, 7); ctx.fill();
-    }
-  }
-  drawHead(0, -48 + bob, 15, eyeMode, tilt);
   ctx.restore();
 }
 
