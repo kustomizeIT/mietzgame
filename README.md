@@ -27,14 +27,16 @@ Kustomizes Kopf stammt **direkt aus der Original-SVG** des Maskottchens (via `ku
 
 ## KI-Quiz
 
-Passend zur Marke gibt es **5 Quiz-S&auml;ulen** (schwebende &bdquo;?&ldquo;-Stationen) im Level:
+Quiz-Fragen &ouml;ffnen sich, **wenn man auf einen Staubsauger-Roboter springt** &ndash; wer die Roboter umgeht, spielt automatisch einen Speedrun ohne Fragen:
 
-- Ber&uuml;hren &ouml;ffnet eine **zuf&auml;llige KI-Frage** (5 pro Durchlauf aus 50, `quiz.json`)
-- **15-Sekunden-Countdown** als Balken &ndash; verhindert Googeln; l&auml;uft er ab, gilt die Frage als falsch
-- Antwortoptionen werden **gemischt** (Tasten 1&ndash;4 oder antippen)
-- **Richtig: +3 Bonuspunkte** (Stern-Z&auml;hler), danach erscheint die kurze Erkl&auml;rung
+- **Balancierter Fragen-Pool**: Die 50 Fragen wechseln systematisch zwischen Leicht/Mittel/Schwer &ndash; niemand bekommt nur schwere oder nur leichte Fragen
+- **3 Antwortoptionen** (gemischt, Tasten 1&ndash;3 oder antippen)
+- **25-Sekunden-Countdown** &ndash; genug Zeit zum Lesen und Verstehen; l&auml;uft er ab, gilt die Frage als falsch
+- **Richtig: +5 Bonuspunkte** (plus +1 f&uuml;r den Roboter-KO), danach erscheint die kurze Erkl&auml;rung &ndash; Lerneffekt!
 - Falsch/Timeout: Aufl&ouml;sung mit Erkl&auml;rung, 0 Punkte
 - Das Spiel pausiert w&auml;hrend des Quiz; die Statistik erscheint im Sieg-Screen
+- **Speedrun-Timer** im HUD (l&auml;uft nur im Spiel, pausiert im Quiz)
+- **Highscore-Liste**: Nach dem Sieg Namen eintragen &ndash; Top 10 nach Punkten/Zeit (lokal im Browser gespeichert, da das Spiel eine serverlose Einzeldatei ist)
 - Fragenkatalog: Grundlagen, Modelle &amp; Technik, Datenschutz/DSGVO, EU AI Act, Alltag &amp; Beruf (F01&ndash;F50, inkl. Schwierigkeitsgrad- und &bdquo;Kracher&ldquo;-Badge)
 
 ## Animationen

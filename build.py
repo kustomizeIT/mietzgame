@@ -21,8 +21,6 @@ for c in [12, 28, 44, 62, 80, 98, 116, 132, 148]:
 grid[11][72] = "m"
 grid[12][2] = "P"
 grid[12][166] = "G"
-for c in [16, 48, 85, 111, 153]:
-    grid[12][c] = "Q"
 
 level = ["".join(r) for r in grid]
 assert all(len(r) == COLS for r in level)

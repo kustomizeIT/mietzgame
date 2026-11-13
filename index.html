@@ -72,6 +72,7 @@
   <div class="hudbox"><span id="hearts"></span></div>
   <div class="hudbox"><svg id="fishIco" viewBox="0 0 22 16"><path d="M1 8l6-6h9l5 6-5 6H7z" fill="#5CE1E6"/><circle cx="7" cy="7" r="1.4" fill="#282E3B"/></svg><span id="fishCount">0</span></div>
   <div class="hudbox"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 2l2.6 6.6L21 9.3l-5 4.4 1.5 6.8L12 17l-5.5 3.5L8 13.7 3 9.3l6.4-.7z" fill="#FF66C4"/></svg><span id="bonusCount">0</span></div>
+  <div class="hudbox"><svg width="18" height="18" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8" fill="none" stroke="#fff" stroke-width="2"/><path d="M12 9v4l3 2" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/><path d="M9 2h6" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg><span id="runTime">0:00</span></div>
 </div>
 
 <div id="ctrl">
@@ -105,7 +106,7 @@
     <div class="qtop">
       <span class="qbadge" id="qcat">KI-Frage</span>
       <div id="qtimerWrap"><div id="qtimerFill"></div></div>
-      <span id="qsec">15</span>
+      <span id="qsec">25</span>
     </div>
     <p id="qtext">Frage</p>
     <div id="qopts"></div>
@@ -118,6 +119,14 @@
   <div class="card">
     <h2>Miau! Geschafft!</h2>
     <p id="winText">Kustomize hat das K&ouml;rbchen erreicht.</p>
+    <div id="hsEntry" style="display:none; margin:12px 0;">
+      <p style="font-weight:bold; margin-bottom:6px;">Neuer Highscore! Dein Name:</p>
+      <div style="display:flex; gap:8px;">
+        <input id="hsName" maxlength="20" placeholder="Name" style="flex:1; border:2px solid #8CC9A5; border-radius:12px; padding:8px 12px; font-size:16px; font-family:inherit;">
+        <button class="btn" id="hsSave" style="padding:8px 18px; box-shadow:0 4px 0 #6fae8a;">Speichern</button>
+      </div>
+    </div>
+    <div id="hsList" style="text-align:left; font-size:14px; margin:10px 0; line-height:1.7;"></div>
     <button class="btn pink" id="winRestart">Nochmal spielen</button>
   </div>
 </div>
@@ -145,7 +154,7 @@ const LEVEL = [
 "                              ====                                      fff                            f                             ===   f        ===           ===     ",
 "        ====                               ===                  ===               ====                              ===                                                   ",
 "   fff                                                                  m                             ===                                 ===                             ",
-"  P         e   Q           e               e   Q             e                 e    Q            e            Q    e               e               e    Q            G   ",
+"  P         e               e               e                 e                 e                 e                 e               e               e                 G   ",
 "###################   #############    #############    #############       #############    #############    #############    #############    #############   ##########",
 "###################   #############    #############    #############       #############    #############    #############    #############    #############   ##########"
 ];
@@ -183,7 +192,8 @@ const platAt = (c, r) => r >= 0 && r < ROWS && c >= 0 && c < COLS && LEVEL[r][c]
 
 let fishes = [], enemies = [], movers = [], goal = null, spawn = { x: 100, y: 100 };
 let floats = [], sparks = [], bonus = 0;
-let quizBeacons = [], quizPool = [], quizQ = null, quizMap = [], quizT = 0, quizRight = 0, quizTotal = 0, quizBeacon = null;
+let quizPool = [], quizQ = null, quizMap = [], quizT = 0, quizRight = 0, quizTotal = 0;
+let runTime = 0, lastTimeStr = "";
 function parseLevel() {
   fishes = []; enemies = []; movers = []; goal = null; quizBeacons = [];
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
@@ -193,7 +203,6 @@ function parseLevel() {
     else if (ch === "m") movers.push({ x: c * TILE - TILE, y: r * TILE, w: TILE * 3, h: 22, dir: 1, min: c * TILE - TILE - 3 * TILE, max: c * TILE - TILE + 3 * TILE, dx: 0 });
     else if (ch === "P") spawn = { x: c * TILE, y: (r + 1) * TILE - 64 };
     else if (ch === "G") goal = { x: c * TILE, y: r * TILE };
-    else if (ch === "Q") quizBeacons.push({ x: c * TILE, y: r * TILE, used: false });
   }
 }
 parseLevel();
@@ -212,8 +221,16 @@ function resetPlayer() {
 }
 function startGame() {
   parseLevel(); lives = 3; score = 0; time = 0; confetti = [];
-  floats = []; sparks = []; bonus = 0;
-  quizPool = QUIZ.slice().sort(() => Math.random() - 0.5).slice(0, 5);
+  floats = []; sparks = []; bonus = 0; runTime = 0; lastTimeStr = "";
+  const buckets = { Leicht: [], Mittel: [], Schwer: [] };
+  for (const q of QUIZ) buckets[q.diff].push(q);
+  for (const k in buckets) buckets[k].sort(() => Math.random() - 0.5);
+  const order = ["Leicht", "Mittel", "Schwer"];
+  quizPool = [];
+  for (let i = 0; quizPool.length < QUIZ.length; i++) {
+    const b = buckets[order[i % 3]];
+    if (b.length) quizPool.push(b.shift());
+  }
   quizRight = 0; quizTotal = 0;
   resetPlayer();
   document.getElementById("startOverlay").classList.add("hidden");
@@ -347,7 +364,7 @@ function update(dt) {
   if (state === "quiz") {
     quizT -= dt;
     const fill = document.getElementById("qtimerFill");
-    fill.style.width = Math.max(0, quizT / 15 * 100) + "%";
+    fill.style.width = Math.max(0, quizT / 25 * 100) + "%";
     fill.classList.toggle("low", quizT < 5);
     document.getElementById("qsec").textContent = Math.max(0, Math.ceil(quizT));
     if (quizT <= 0) resolveQuiz(-1);
@@ -378,6 +395,14 @@ function update(dt) {
     player.vy = -1000; player.jumpBuf = 0; player.coyote = 0; player.onGround = false; sJump();
   }
   if (!input.jump && player.vy < -500) player.vy = -500;
+
+  runTime += dt;
+  const mm = Math.floor(runTime / 60), ss = Math.floor(runTime % 60);
+  const tStr = mm + ":" + (ss < 10 ? "0" : "") + ss;
+  if (tStr !== lastTimeStr) {
+    document.getElementById("runTime").textContent = tStr;
+    lastTimeStr = tStr;
+  }
 
   const moving = Math.abs(player.vx) > 40;
   if (moving || !player.onGround) player.idleTime = 0; else player.idleTime += dt;
@@ -453,24 +478,25 @@ function update(dt) {
           c: [GREEN, PINK, BLUE, "#fff"][Math.floor(Math.random() * 4)]
         });
         updateHud();
+        openQuiz();
       } else loseLife(false);
-    }
-  }
-
-  for (const b of quizBeacons) {
-    if (!b.used && player.x + player.w > b.x && player.x < b.x + TILE &&
-        player.y + player.h > b.y - TILE * 2 && player.y < b.y + TILE) {
-      openQuiz(b);
-      break;
     }
   }
 
   if (goal && player.x + player.w > goal.x + 8 && player.x < goal.x + TILE * 1.5 &&
       player.y + player.h > goal.y - TILE * 2) {
     state = "win";
+    const tM = Math.floor(runTime / 60), tS = Math.floor(runTime % 60);
+    const tStr = tM + ":" + (tS < 10 ? "0" : "") + tS;
     document.getElementById("winText").innerHTML =
       "Kustomize hat das K&ouml;rbchen erreicht!<br><b>" + score + " von " + fishes.length + " Fischen</b> gesammelt." +
-      (quizTotal > 0 ? "<br><b>Quiz: " + quizRight + " von " + quizTotal + " Fragen</b> richtig &ndash; +" + (quizRight * 5) + " Bonuspunkte" : "");
+      (quizTotal > 0 ? "<br><b>Quiz: " + quizRight + " von " + quizTotal + " Fragen</b> richtig &ndash; +" + (quizRight * 5) + " Bonuspunkte" : "") +
+      "<br><b>Zeit: " + tStr + "</b> &middot; <b>" + (score + bonus) + " Punkte</b>";
+    const hsNow = getHS();
+    const qualifies = hsNow.length < 10 || (score + bonus) > hsNow[hsNow.length - 1].score;
+    document.getElementById("hsEntry").style.display = qualifies ? "block" : "none";
+    document.getElementById("hsName").value = "";
+    renderHSList();
     document.getElementById("winOverlay").classList.remove("hidden");
     document.getElementById("ctrl").style.display = "none";
     sWin();
@@ -485,21 +511,47 @@ function update(dt) {
   camX += (target - camX) * Math.min(1, dt * 6);
 }
 
-function openQuiz(b) {
-  quizBeacon = b;
-  quizQ = quizPool.pop();
+function getHS() {
+  try { return JSON.parse(localStorage.getItem("kustomizeHS") || "[]"); } catch (e) { return []; }
+}
+function saveHS(name) {
+  const hs = getHS();
+  hs.push({ name: name, score: score + bonus, time: Math.round(runTime * 10) / 10, fish: score, quiz: quizRight });
+  hs.sort((a, b) => b.score - a.score || a.time - b.time);
+  try { localStorage.setItem("kustomizeHS", JSON.stringify(hs.slice(0, 10))); } catch (e) {}
+}
+function renderHSList() {
+  const hs = getHS();
+  const el = document.getElementById("hsList");
+  if (!hs.length) { el.innerHTML = ""; return; }
+  let html = "<b>Highscores (auf diesem Ger\u00e4t):</b><br>";
+  hs.forEach((h, i) => {
+    const m = Math.floor(h.time / 60), s = Math.floor(h.time % 60);
+    html += (i + 1) + ". " + h.name + " &ndash; <b>" + h.score + " Punkte</b> (" + m + ":" + (s < 10 ? "0" : "") + s + ")<br>";
+  });
+  el.innerHTML = html;
+}
+document.getElementById("hsSave").addEventListener("click", () => {
+  const name = document.getElementById("hsName").value.trim() || "Anonym";
+  saveHS(name);
+  document.getElementById("hsEntry").style.display = "none";
+  renderHSList();
+});
+
+function openQuiz() {
+  quizQ = quizPool.shift();
   if (!quizQ) return;
-  const idx = [0, 1, 2, 3].sort(() => Math.random() - 0.5);
-  quizMap = idx;
+  const wrong = [0, 1, 2, 3].filter(i => i !== quizQ.a).sort(() => Math.random() - 0.5).slice(0, 2);
+  quizMap = [quizQ.a, wrong[0], wrong[1]].sort(() => Math.random() - 0.5);
   document.getElementById("qcat").textContent = "KI-Frage \u00b7 " + quizQ.diff + (quizQ.kracher ? " \u00b7 Kracher" : "");
   document.getElementById("qcat").className = "qbadge " + quizQ.diff.toLowerCase();
   document.getElementById("qtext").textContent = quizQ.q;
   const wrap = document.getElementById("qopts");
   wrap.innerHTML = "";
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 3; i++) {
     const btn = document.createElement("button");
     btn.className = "qopt";
-    btn.innerHTML = '<span class="letter">' + "ABCD"[i] + "</span>" + quizQ.opts[idx[i]];
+    btn.innerHTML = '<span class="letter">' + "ABC"[i] + "</span>" + quizQ.opts[quizMap[i]];
     btn.addEventListener("click", () => resolveQuiz(i));
     wrap.appendChild(btn);
   }
@@ -508,7 +560,7 @@ function openQuiz(b) {
   document.getElementById("quizBtn").style.display = "none";
   document.getElementById("quizOverlay").classList.remove("hidden");
   document.getElementById("ctrl").style.display = "none";
-  quizT = 15;
+  quizT = 25;
   state = "quiz";
 }
 function resolveQuiz(choice) {
@@ -540,41 +592,16 @@ function resolveQuiz(choice) {
 function closeQuiz() {
   document.getElementById("quizOverlay").classList.add("hidden");
   if (isTouch) document.getElementById("ctrl").style.display = "flex";
-  quizBeacon.used = true;
   state = "play";
   last = performance.now();
 }
 document.getElementById("quizBtn").addEventListener("click", () => { if (state === "quiz" && quizT <= -1) closeQuiz(); });
 addEventListener("keydown", e => {
   if (state === "quiz") {
-    if (["1", "2", "3", "4"].includes(e.key)) resolveQuiz(parseInt(e.key) - 1);
+    if (["1", "2", "3"].includes(e.key)) resolveQuiz(parseInt(e.key) - 1);
     if (e.key === "Enter" && quizT <= -1) closeQuiz();
   }
 });
-
-function drawBeacons() {
-  for (const b of quizBeacons) {
-    if (b.used) continue;
-    const bob = Math.sin(time * 2.5 + b.x) * 5;
-    const bx = b.x + TILE / 2, by = b.y - 8 + bob;
-    ctx.fillStyle = "rgba(92,225,230,.25)";
-    ctx.beginPath(); ctx.ellipse(bx, b.y + TILE - 6, 20, 6, 0, 0, 7); ctx.fill();
-    ctx.fillStyle = BLUE;
-    ctx.strokeStyle = "#fff";
-    ctx.lineWidth = 2.5;
-    ctx.beginPath(); ctx.roundRect(bx - 17, by - 92, 34, 84, 12); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = "rgba(255,255,255,.35)";
-    ctx.beginPath(); ctx.roundRect(bx - 12, by - 86, 8, 60, 5); ctx.fill();
-    ctx.fillStyle = "#fff";
-    ctx.font = "bold 34px Verdana, sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("?", bx, by - 36);
-    ctx.fillStyle = PINK;
-    ctx.globalAlpha = 0.5 + Math.sin(time * 4 + b.x) * 0.3;
-    ctx.beginPath(); ctx.arc(bx, by - 100 - bob * 0.5, 4, 0, 7); ctx.fill();
-    ctx.globalAlpha = 1;
-  }
-}
 
 function drawFish(x, y, s, col) {
   ctx.fillStyle = col;
@@ -762,7 +789,6 @@ function draw() {
   }
 
   if (goal) drawGoal();
-  drawBeacons();
 
   for (const d of player.dust) {
     ctx.fillStyle = "rgba(255,255,255," + Math.max(0, d.a) * 0.8 + ")";
