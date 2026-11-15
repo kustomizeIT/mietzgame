@@ -39,6 +39,13 @@ Quiz-Fragen &ouml;ffnen sich, **wenn man auf einen Staubsauger-Roboter springt**
 - **Highscore-Liste**: Nach dem Sieg Namen eintragen &ndash; Top 10 nach Punkten/Zeit (lokal im Browser gespeichert, da das Spiel eine serverlose Einzeldatei ist)
 - Fragenkatalog: Grundlagen, Modelle &amp; Technik, Datenschutz/DSGVO, EU AI Act, Alltag &amp; Beruf (F01&ndash;F50, inkl. Schwierigkeitsgrad- und &bdquo;Kracher&ldquo;-Badge)
 
+## Hintergrundmusik
+
+- **&bdquo;Kustomize Alley Run&ldquo;** l&auml;uft als Endlosschleife im Hintergrund (`bgm.mp3`, als eigene Datei neben dem Spiel)
+- Startet mit dem Klick auf &bdquo;Los geht&rsquo;s!&ldquo; (Browser-Autoplay-Regel)
+- **Deutlich leiser als die Spiel-Sounds** (Musik 15&nbsp;% vs. Soundeffekte), damit Spr&uuml;nge, Fische und Quiz im Vordergrund bleiben
+- **Lautsprecher-Button im HUD** zum Stummschalten der Musik w&auml;hrend des Spiels
+
 ## Animationen
 
 Mietz wird prozedural in Canvas gezeichnet (kein starres Bild) und reagiert auf das Spielverhalten:

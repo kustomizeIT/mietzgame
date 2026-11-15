@@ -73,6 +73,7 @@
   <div class="hudbox"><svg id="fishIco" viewBox="0 0 22 16"><path d="M1 8l6-6h9l5 6-5 6H7z" fill="#5CE1E6"/><circle cx="7" cy="7" r="1.4" fill="#282E3B"/></svg><span id="fishCount">0</span></div>
   <div class="hudbox"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 2l2.6 6.6L21 9.3l-5 4.4 1.5 6.8L12 17l-5.5 3.5L8 13.7 3 9.3l6.4-.7z" fill="#FF66C4"/></svg><span id="bonusCount">0</span></div>
   <div class="hudbox"><svg width="18" height="18" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8" fill="none" stroke="#fff" stroke-width="2"/><path d="M12 9v4l3 2" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/><path d="M9 2h6" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg><span id="runTime">0:00</span></div>
+  <div class="hudbox" id="musicBtn" style="cursor:pointer; font-size:17px; line-height:1;">&#128266;</div>
 </div>
 
 <div id="ctrl">
@@ -252,6 +253,7 @@ function startGame() {
   if (isTouch) document.getElementById("ctrl").style.display = "flex";
   state = "play";
   updateHud();
+  if (musicOn) bgm.play().catch(() => {});
 }
 
 function updateHud() {
@@ -324,6 +326,11 @@ const sFish = () => { beep(760, 0.1, "sine", 0.09); setTimeout(() => beep(1020, 
 const sHurt = () => beep(300, 0.3, "sawtooth", 0.08, 90);
 const sStomp = () => beep(200, 0.15, "square", 0.08, 420);
 const sWin = () => { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => beep(f, 0.22, "sine", 0.1), i * 130)); };
+
+const bgm = new Audio("bgm.mp3");
+bgm.loop = true;
+bgm.volume = 0.15;
+let musicOn = true;
 
 function collideX(e, dx) {
   e.x += dx;
@@ -522,6 +529,13 @@ function update(dt) {
   const target = Math.max(0, Math.min(player.x - viewW * 0.42, COLS * TILE - viewW));
   camX += (target - camX) * Math.min(1, dt * 6);
 }
+
+document.getElementById("musicBtn").addEventListener("pointerdown", () => {
+  musicOn = !musicOn;
+  document.getElementById("musicBtn").innerHTML = musicOn ? "\u{1F50A}" : "\u{1F507}";
+  if (musicOn) bgm.play().catch(() => {});
+  else bgm.pause();
+});
 
 function getHS() {
   try { return JSON.parse(localStorage.getItem("kustomizeHS") || "[]"); } catch (e) { return []; }
