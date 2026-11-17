@@ -39,6 +39,16 @@ Quiz-Fragen &ouml;ffnen sich, **wenn man auf einen Staubsauger-Roboter springt**
 - **Highscore-Liste**: Nach dem Sieg Namen eintragen &ndash; Top 10 nach Punkten/Zeit (lokal im Browser gespeichert, da das Spiel eine serverlose Einzeldatei ist)
 - Fragenkatalog: Grundlagen, Modelle &amp; Technik, Datenschutz/DSGVO, EU AI Act, Alltag &amp; Beruf (F01&ndash;F50, inkl. Schwierigkeitsgrad- und &bdquo;Kracher&ldquo;-Badge)
 
+## Zwei Level & Extras
+
+- **Level 1 &bdquo;Wiese&ldquo;** und **Level 2 &bdquo;Serverraum&ldquo;** (dunkleres Theme, 7 Roboter, 4 fahrende Plattformen, **Endgegner &bdquo;Legacy-System&ldquo;** mit 3 Treffern &agrave; +10 Bonuspunkte &ndash; oder dr&uuml;berspringen als Speedrun-Option)
+- **Fellfarben** w&auml;hlbar: Wei&szlig;, Grau, Orange (gr&uuml;ner Markenfleck bleibt)
+- **Fisch-Kombo**: Schnell hintereinander gesammelte Fische geben Extra-Sterne (5er-Kombo = Erfolg)
+- **Medaillen** nach Zeit: Gold / Silber / Bronze (pro Level eigene Schwellen) + **Tagesform**-Bewertung
+- **6 Erfolge (Achievements)** mit Toast-Benachrichtigung, im Start-Screen sichtbar
+- **CTA-Button** im Sieg-Screen: &bdquo;Mehr &uuml;ber KI bei kustomize.it&ldquo;
+- Highscores **pro Level** getrennt
+
 ## Hintergrundmusik
 
 - **&bdquo;Kustomize Alley Run&ldquo;** l&auml;uft als Endlosschleife im Hintergrund (`bgm.mp3`, als eigene Datei neben dem Spiel)
