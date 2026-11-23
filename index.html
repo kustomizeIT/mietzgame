@@ -383,7 +383,21 @@ function bindBtn(id, key) {
 }
 bindBtn("leftBtn", "left"); bindBtn("rightBtn", "right"); bindBtn("jumpBtn", "jump");
 
-document.getElementById("startBtn").addEventListener("click", () => startGame());
+var startOverride = -1;
+try {
+  var mo = /level=(1|2)/.exec(String(location.search || ""));
+  if (mo) startOverride = parseInt(mo[1], 10) - 1;
+} catch (e) {}
+if (startOverride === 0 || startOverride === 1) {
+  document.getElementById("startBtn").textContent = startOverride === 1 ? "Los geht\u2019s \u2013 direkt im Serverraum!" : "Los geht\u2019s!";
+  if (startOverride === 1) {
+    var hintEl = document.createElement("p");
+    hintEl.style.cssText = "margin:6px 0 0; font-size:13px; color:#282E3B;";
+    hintEl.textContent = "\u{1F527} Test-Modus: Level 1 (Wiese) wird \u00fcbersprungen.";
+    document.getElementById("startBtn").parentNode.insertBefore(hintEl, document.getElementById("startBtn").nextSibling);
+  }
+}
+document.getElementById("startBtn").addEventListener("click", () => startGame(startOverride === 1 ? 1 : undefined));
 document.getElementById("nextLevelBtn").addEventListener("click", () => {
   totals.score += score;
   totals.bonus += bonus;
