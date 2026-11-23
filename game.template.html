@@ -111,10 +111,6 @@ window.addEventListener("error", function (e) {
       <span class="who">&mdash; Charles Darwin</span></p>
     </div>
     <p>Hilf <b>Kustomize</b>, alle Fische zu sammeln und das K&ouml;rbchen zu erreichen!<br>Hoppe auf die Staubsauger-Roboter, um sie auszuschalten.</p>
-    <div style="display:flex; gap:10px; justify-content:center; margin:8px 0;">
-      <button class="btn" id="lvlBtn0" onclick="setSelLevel(0)" onpointerdown="setSelLevel(0)" style="font-size:14px; padding:10px 14px;">&#127807; Wiese</button>
-      <button class="btn" id="lvlBtn1" onclick="setSelLevel(1)" onpointerdown="setSelLevel(1)" style="font-size:14px; padding:10px 14px;">&#128421;&#65039; Serverraum</button>
-    </div>
     <div style="display:flex; gap:10px; justify-content:center; align-items:center; margin:4px 0 10px;">
       <span style="font-size:13px;">Fellfarbe:</span>
       <button id="furW" style="width:34px;height:34px;border-radius:50%;border:3px solid #8CC9A5;background:#fff;cursor:pointer;padding:0;" title="Wei&szlig;"></button>
@@ -353,11 +349,9 @@ function bindBtn(id, key) {
 }
 bindBtn("leftBtn", "left"); bindBtn("rightBtn", "right"); bindBtn("jumpBtn", "jump");
 
-document.getElementById("startBtn").addEventListener("click", function () {
-  startGame(typeof autoLevel !== "undefined" && autoLevel >= 0 ? autoLevel : selLevel);
-});
-document.getElementById("winRestart").addEventListener("click", () => startGame(curLevel));
-document.getElementById("overRestart").addEventListener("click", () => startGame(curLevel));
+document.getElementById("startBtn").addEventListener("click", () => startGame());
+document.getElementById("winRestart").addEventListener("click", () => startGame());
+document.getElementById("overRestart").addEventListener("click", () => startGame());
 
 function spawnDust(n, big) {
   for (let i = 0; i < n; i++) player.dust.push({
@@ -653,20 +647,6 @@ function update(dt) {
   camX += (target - camX) * Math.min(1, dt * 6);
 }
 
-window.setSelLevel = setSelLevel;
-function setSelLevel(l) {
-  selLevel = l;
-  var ids = ["lvlBtn0", "lvlBtn1"];
-  for (var i = 0; i < ids.length; i++) {
-    var b = document.getElementById(ids[i]);
-    var on = (i === l);
-    b.style.boxShadow = on ? "0 0 0 3px #FF66C4" : "none";
-    b.style.background = on ? "#ff8fd2" : "";
-    b.style.opacity = on ? "1" : ".82";
-  }
-}
-document.getElementById("lvlBtn0").addEventListener("click", () => setSelLevel(0));
-document.getElementById("lvlBtn1").addEventListener("click", () => setSelLevel(1));
 function setFur(f) {
   furSel = f;
   for (const k in tintedCache) delete tintedCache[k];
@@ -696,7 +676,6 @@ const ACH = [
   { id: "flawless", icon: "\u{1F3C5}", name: "Unantastbar", desc: "Ziel ohne Lebenverlust erreicht" },
   { id: "quiz", icon: "\u{1F393}", name: "KI-Profi", desc: "3+ Quizfragen gestellt \u2013 alle richtig" },
   { id: "speed", icon: "\u26A1", name: "Blitzkatze", desc: "Wiese in unter 90 Sekunden" },
-  { id: "boss", icon: "\u{1F5A5}\uFE0F", name: "Legacy besiegt", desc: "Den Endgegner im Serverraum besiegt" },
   { id: "combo", icon: "\u2B50", name: "Kombo-Katze", desc: "5er-Fisch-Kombo geschafft" }
 ];
 function getAch() {
@@ -1126,22 +1105,9 @@ function loop(now) {
     last = now;
     update(dt);
     draw();
-    setSelLevel(0);
-setFur(furSel);
+    setFur(furSel);
 renderAch();
-var lvlParam = -1, autoLevel = -1;
-try {
-  var m = /level=(1|2)/.exec(String(location.search || ""));
-  if (m) lvlParam = parseInt(m[1], 10) - 1;
-} catch (e) {}
-if (lvlParam === 0 || lvlParam === 1) {
-  setSelLevel(lvlParam);
-} else {
-  setSelLevel(0);
-}
 requestAnimationFrame(loop);
-autoLevel = (lvlParam === 0 || lvlParam === 1) ? lvlParam : -1;
-if (autoLevel >= 0) startGame(autoLevel);
   } catch (e) {
     if (!loopBroken) {
       loopBroken = true;
@@ -1152,22 +1118,9 @@ if (autoLevel >= 0) startGame(autoLevel);
     }
   }
 }
-setSelLevel(0);
 setFur(furSel);
 renderAch();
-var lvlParam = -1, autoLevel = -1;
-try {
-  var m = /level=(1|2)/.exec(String(location.search || ""));
-  if (m) lvlParam = parseInt(m[1], 10) - 1;
-} catch (e) {}
-if (lvlParam === 0 || lvlParam === 1) {
-  setSelLevel(lvlParam);
-} else {
-  setSelLevel(0);
-}
 requestAnimationFrame(loop);
-autoLevel = (lvlParam === 0 || lvlParam === 1) ? lvlParam : -1;
-if (autoLevel >= 0) startGame(autoLevel);
 </script>
 </body>
 </html>

@@ -57,9 +57,7 @@ grid[12][166] = "G"
 
 level = ["".join(r) for r in grid]
 assert all(len(r) == COLS for r in level)
-level2, cols2 = make_level2()
-assert all(len(r) == cols2 for r in level2)
-js_level = "[\n[" + ",\n".join('"%s"' % r for r in level) + "],\n[" + ",\n".join('"%s"' % r for r in level2) + "]\n]"
+js_level = "[\n[" + ",\n".join('"%s"' % r for r in level) + "]\n]"
 
 def datauri(path):
     return "data:image/png;base64," + base64.b64encode(open(path, "rb").read()).decode()

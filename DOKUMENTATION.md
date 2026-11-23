@@ -136,6 +136,16 @@ gh api repos/kustomizeIT/mietzgame/pages/builds/latest --jq '{status,commit}'
 
 ## 8. Offene Aufgaben / Ideen des Kunden
 
+- [x] ~~Zweites Level "Serverraum" mit Endgegner~~ **am 15.11. zurueckgezogen**: Nach
+      Testfeedback (abstuerzender Spiel-Loop auf Geraeten, unklare Ursache – moeglicherweise
+      Bild-Dekodierung/Timing beim Auto-Start) hat der Kunde entschieden, den Serverraum
+      VORLAEFIG zu entfernen, um Fehler im Live-Betrieb zu vermeiden. Der komplette Code
+      (Level-Generator in build.py-Historie, Boss-Logik, drawBoss) ist in Commits bis
+      ba34cf6 in der Git-Historie erhalten und kann spaeter mit genauer Geraete-Analyse
+      wieder aktiviert werden. Der Boss meldete sich via "?level=2"-Direktstart problematisch
+      (Mieze unsichtbar, Fische flackerten) – Ursache beim Wiedereinbau zuerst klaren!
+
+
 - [ ] **Frontalansicht**: Katze schaut den Spieler am Anfang an (~1,5 s) und
       kurz nach jedem Quiz frontal. Kunde generiert dafür noch ein Frontal-
       Sprite-Sheet (gleiche Regeln: horizontale Reihe, transparenter

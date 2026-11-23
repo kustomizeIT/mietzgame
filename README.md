@@ -41,13 +41,13 @@ Quiz-Fragen &ouml;ffnen sich, **wenn man auf einen Staubsauger-Roboter springt**
 
 ## Zwei Level & Extras
 
-- **Level 1 &bdquo;Wiese&ldquo;** und **Level 2 &bdquo;Serverraum&ldquo;** (dunkleres Theme, 7 Roboter, 4 fahrende Plattformen, **Endgegner &bdquo;Legacy-System&ldquo;** mit 3 Treffern &agrave; +10 Bonuspunkte &ndash; oder dr&uuml;berspringen als Speedrun-Option)
+- **Ein Level: &bdquo;Wiese&ldquo;** (das zweite Level &bdquo;Serverraum&ldquo; wurde nach Testfeedback auf unbestimmte Zeit zur&uuml;ckgezogen &ndash; der Code liegt auskommentiert in der Historie)
 - **Fellfarben** w&auml;hlbar: Wei&szlig;, Grau, Orange (gr&uuml;ner Markenfleck bleibt)
 - **Fisch-Kombo**: Schnell hintereinander gesammelte Fische geben Extra-Sterne (5er-Kombo = Erfolg)
 - **Medaillen** nach Zeit: Gold / Silber / Bronze (pro Level eigene Schwellen) + **Tagesform**-Bewertung
 - **6 Erfolge (Achievements)** mit Toast-Benachrichtigung, im Start-Screen sichtbar
 - **CTA-Button** im Sieg-Screen: &bdquo;Mehr &uuml;ber KI bei kustomize.it&ldquo;
-- Highscores **pro Level** getrennt
+- Highscores im Browser (localStorage)
 
 ## Hintergrundmusik
 
