@@ -136,14 +136,13 @@ gh api repos/kustomizeIT/mietzgame/pages/builds/latest --jq '{status,commit}'
 
 ## 8. Offene Aufgaben / Ideen des Kunden
 
-- [WICHTIG: Rollback 15.11.] Der "Serverraum" (Level 2 mit Endgegner) wurde nach
-  Kundenfeedback VORLAEUFIG ENTFERNT: Auf den Geraeten des Kunden lief Level 2 nicht
-  (direkter Start via "?level=2": Katze unsichtbar, Fische flackerten, Spiel stand).
-  Ursache unklar - moeglicherweise Timing/Bild-Dekodierung beim Automatikstart oder
-  Geraete-spezifischer Renderfehler. Der komplette Code (Level-Generator in build.py,
-  Boss-Logik, Theming) ist in der Git-Historie bis Commit ba34cf6 erhalten. Vor einem
-  Wiedereinbau: Ursache an konkreten Geraeten klaeren (die eingebaute Fehler-Screenshot-
-  Funktion zeigt Fehler als rosa Kasten am oberen Rand an).
+- [GELoEST 15.11.] Der "Serverraum" lief beim Kunden nicht, als er per "?level=2"
+  AUTOMATISCH (ohne Nutzereingabe) startete (Katze unsichtbar, Fische flackerten).
+  Loesung: Serverraum ist jetzt SEQUENZIELLES Level 2 - nach dem Wiese-Ziel ein
+  Zwischen-Screen mit Statistik + "Weiter in den Serverraum"-Button; startGame(1)
+  per KLICK, derselbe bewaehrte Weg wie der normale Spielstart. Keine Level-Auswahl
+  am Start (Kundenwunsch). Finale zeigt Gesamtpunkte/-zeit, Highscore speichert den
+  Gesamtlauf. Lernstueck: Auto-Starts ohne Nutzergeste vermeiden - Start immer per Button.
 
 
 - [x] ~~Zweites Level "Serverraum" mit Endgegner~~ **am 15.11. zurueckgezogen**: Nach

@@ -41,7 +41,7 @@ Quiz-Fragen &ouml;ffnen sich, **wenn man auf einen Staubsauger-Roboter springt**
 
 ## Zwei Level & Extras
 
-- **Ein Level: &bdquo;Wiese&ldquo;** (das zweite Level &bdquo;Serverraum&ldquo; wurde nach Testfeedback auf unbestimmte Zeit zur&uuml;ckgezogen &ndash; der Code liegt auskommentiert in der Historie)
+- **Level-Kette: &bdquo;Wiese&ldquo; &rarr; &bdquo;Serverraum&ldquo;**: Nach dem Wiese-Ziel erscheint ein Zwischen-Screen mit Statistik und &bdquo;Weiter in den Serverraum&ldquo;-Button (keine Level-Auswahl am Start). Im Serverraum wartet der **Endgegner &bdquo;Legacy-System&ldquo;** (3 Spr&uuml;nge = besiegt, +10 Bonuspunkte). Der Final-Screen zeigt **Gesamtpunkte/-zeit** &uuml;ber beide Level, der Highscore speichert den Gesamtlauf
 - **Fellfarben** w&auml;hlbar: Wei&szlig;, Grau, Orange (gr&uuml;ner Markenfleck bleibt)
 - **Fisch-Kombo**: Schnell hintereinander gesammelte Fische geben Extra-Sterne (5er-Kombo = Erfolg)
 - **Medaillen** nach Zeit: Gold / Silber / Bronze (pro Level eigene Schwellen) + **Tagesform**-Bewertung
