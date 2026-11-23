@@ -139,7 +139,7 @@ window.addEventListener("error", function (e) {
 
 <div class="overlay hidden" id="winOverlay">
   <div class="card">
-    <h2>Miau! Geschafft!</h2>
+    <h2 id="winTitle">Miau! Geschafft!</h2>
     <p id="winText">Kustomize hat das K&ouml;rbchen erreicht.</p>
     <div id="hsEntry" style="display:none; margin:12px 0;">
       <p style="font-weight:bold; margin-bottom:6px;">Neuer Highscore! Dein Name:</p>
@@ -149,6 +149,7 @@ window.addEventListener("error", function (e) {
       </div>
     </div>
     <div id="hsList" style="text-align:left; font-size:14px; margin:10px 0; line-height:1.7;"></div>
+    <button class="btn pink" id="nextLevelBtn" style="display:none;">Weiter in den Serverraum &rarr;</button>
     <button class="btn pink" id="winRestart">Nochmal spielen</button>
     <a class="btn" href="https://kustomize.it" target="_blank" rel="noopener" style="display:block; text-decoration:none; margin-top:10px; font-size:15px;">Mehr &uuml;ber KI bei kustomize.it &rarr;</a>
   </div>
@@ -278,7 +279,8 @@ const player = {
   idleTime: 0, blink: 0, nextBlink: 2, landT: 0, wasSleep: false, dust: []
 };
 let state = "start", lives = 3, score = 0, camX = 0, time = 0, confetti = [];
-let selLevel = 0, comboN = 0, comboT = 0, deathsThisRun = 0;
+let selLevel = 0, comboN = 0, comboT = 0, deathsThisRun = 0, levelTime = 0, deathsLevel = 0;
+let totals = { score: 0, bonus: 0, qR: 0, qT: 0, fish: 0 };
 
 function resetPlayer() {
   player.x = spawn.x; player.y = spawn.y; player.vx = 0; player.vy = 0;
@@ -287,9 +289,10 @@ function resetPlayer() {
 }
 function startGame(lv) {
   curLevel = (lv === 1) ? 1 : 0;
+  if (curLevel === 0) totals = { score: 0, bonus: 0, qR: 0, qT: 0, fish: 0 };
   LEVEL = LEVELS[curLevel];
   parseLevel(); lives = 3; score = 0; time = 0; confetti = [];
-  floats = []; sparks = []; bonus = 0; runTime = 0; lastTimeStr = ""; deathsThisRun = 0; comboN = 0; comboT = 0;
+  floats = []; sparks = []; bonus = 0; lastTimeStr = ""; deathsThisRun = 0; deathsLevel = 0; comboN = 0; comboT = 0; levelTime = 0;
   const buckets = { Leicht: [], Mittel: [], Schwer: [] };
   for (const q of QUIZ) buckets[q.diff].push(q);
   for (const k in buckets) buckets[k].sort(() => Math.random() - 0.5);
@@ -350,6 +353,14 @@ function bindBtn(id, key) {
 bindBtn("leftBtn", "left"); bindBtn("rightBtn", "right"); bindBtn("jumpBtn", "jump");
 
 document.getElementById("startBtn").addEventListener("click", () => startGame());
+document.getElementById("nextLevelBtn").addEventListener("click", () => {
+  totals.score += score;
+  totals.bonus += bonus;
+  totals.qR += quizRight;
+  totals.qT += quizTotal;
+  totals.fish += score;
+  startGame(1);
+});
 document.getElementById("winRestart").addEventListener("click", () => startGame());
 document.getElementById("overRestart").addEventListener("click", () => startGame());
 
@@ -479,6 +490,7 @@ function update(dt) {
 
   if (comboT > 0) { comboT -= dt; if (comboT <= 0) comboN = 0; }
   runTime += dt;
+  levelTime += dt;
   const mm = Math.floor(runTime / 60), ss = Math.floor(runTime % 60);
   const tStr = mm + ":" + (ss < 10 ? "0" : "") + ss;
   if (tStr !== lastTimeStr) {
@@ -610,30 +622,52 @@ function update(dt) {
   if (goal && player.x + player.w > goal.x + 8 && player.x < goal.x + TILE * 1.5 &&
       player.y + player.h > goal.y - TILE * 2) {
     state = "win";
-    const tM = Math.floor(runTime / 60), tS = Math.floor(runTime % 60);
+    const tM = Math.floor(levelTime / 60), tS = Math.floor(levelTime % 60);
     const tStr = tM + ":" + (tS < 10 ? "0" : "") + tS;
     const MEDALS = curLevel === 1 ? [110, 160, 220] : [75, 120, 180];
-    const medal = runTime < MEDALS[0] ? "\u{1F947} Gold" : runTime < MEDALS[1] ? "\u{1F948} Silber" : runTime < MEDALS[2] ? "\u{1F949} Bronze" : "\u{1F3C3} Finisher";
+    const medal = levelTime < MEDALS[0] ? "\u{1F947} Gold" : levelTime < MEDALS[1] ? "\u{1F948} Silber" : levelTime < MEDALS[2] ? "\u{1F949} Bronze" : "\u{1F3C3} Finisher";
     const fishPct = fishes.length ? score / fishes.length : 1;
+    const totScore = totals.score + totals.bonus + score + bonus;
     let tagesform;
-    if (fishPct >= 1 && deathsThisRun === 0) tagesform = "\u{1F3C6} Katzenstark! Perfekte Tagesform!";
-    else if (fishPct >= 0.7 && deathsThisRun <= 1) tagesform = "\u{1F60A} Starke Tagesform!";
+    if (fishPct >= 1 && deathsLevel === 0) tagesform = "\u{1F3C6} Katzenstark! Perfekte Tagesform!";
+    else if (fishPct >= 0.7 && deathsLevel <= 1) tagesform = "\u{1F60A} Starke Tagesform!";
     else tagesform = "\u{1F634} Da geht noch mehr \u2013 Nickerchen einlegen und nochmal!";
-    document.getElementById("winText").innerHTML =
-      "Kustomize hat das K&ouml;rbchen erreicht!<br><b>" + score + " von " + fishes.length + " Fischen</b> gesammelt." +
-      (quizTotal > 0 ? "<br><b>Quiz: " + quizRight + " von " + quizTotal + " Fragen</b> richtig &ndash; +" + (quizRight * 5) + " Bonuspunkte" : "") +
-      "<br><b>Zeit: " + tStr + "</b> &middot; <b>" + (score + bonus) + " Punkte</b> &middot; " + medal +
-      "<br><span style=\"font-size:15px\">" + tagesform + "</span>";
     if (score === fishes.length && fishes.length > 0) unlockAch("fish");
-    if (deathsThisRun === 0) unlockAch("flawless");
+    if (deathsLevel === 0) unlockAch("flawless");
     if (quizTotal >= 3 && quizRight === quizTotal) unlockAch("quiz");
-    if (curLevel === 0 && runTime < 90) unlockAch("speed");
-    const hsNow = getHS();
-    const qualifies = hsNow.length < 10 || (score + bonus) > hsNow[hsNow.length - 1].score;
-    document.getElementById("hsEntry").style.display = qualifies ? "block" : "none";
-    document.getElementById("hsName").value = "";
-    renderHSList();
-    document.getElementById("winOverlay").classList.remove("hidden");
+    if (curLevel === 0 && levelTime < 90) unlockAch("speed");
+    const isCheckpoint = (curLevel === 0);
+    const tM2 = Math.floor(runTime / 60), tS2 = Math.floor(runTime % 60);
+    const totStr = tM2 + ":" + (tS2 < 10 ? "0" : "") + tS2;
+    if (isCheckpoint) {
+      document.getElementById("winTitle").innerHTML = "\u{1F3C1} Level 1 geschafft!";
+      document.getElementById("winText").innerHTML =
+        "Kustomize hat das K&ouml;rbchen der Wiese erreicht!<br><b>" + score + " von " + fishes.length + " Fischen</b> gesammelt." +
+        (quizTotal > 0 ? "<br><b>Quiz: " + quizRight + " von " + quizTotal + " Fragen</b> richtig" : "") +
+        "<br><b>Zeit: " + tStr + "</b> &middot; <b>" + (score + bonus) + " Punkte</b> &middot; " + medal +
+        "<br><span style=\"font-size:15px\">" + tagesform + "</span>";
+      document.getElementById("hsEntry").style.display = "none";
+      document.getElementById("hsList").innerHTML = "Deine Punkte werden im Serverraum weitergesammelt!";
+      document.getElementById("winRestart").style.display = "none";
+      document.getElementById("nextLevelBtn").style.display = "inline-block";
+      document.getElementById("winOverlay").classList.remove("hidden");
+    } else {
+      document.getElementById("winTitle").innerHTML = "\u{1F3C6} Miau! Alles geschafft!";
+      document.getElementById("winText").innerHTML =
+        "Kustomize hat den Serverraum besiegt und das K&ouml;rbchen erreicht!<br><b>Dieses Level: " + score + " von " + fishes.length + " Fischen</b> gesammelt." +
+        (quizTotal > 0 ? "<br><b>Quiz: " + quizRight + " von " + quizTotal + " Fragen</b> richtig" : "") +
+        "<br><b>Punkte gesamt: " + totScore + "</b> &middot; <b>Zeit gesamt: " + totStr + "</b> &middot; " +
+        "\u{1F512} Serverraum-Zeit: " + tStr + " " + medal +
+        "<br><span style=\"font-size:15px\">" + tagesform + "</span>";
+      const hsNow = getHS();
+      const qualifies = hsNow.length < 10 || totScore > hsNow[hsNow.length - 1].score;
+      document.getElementById("hsEntry").style.display = qualifies ? "block" : "none";
+      document.getElementById("hsName").value = "";
+      document.getElementById("winRestart").style.display = "inline-block";
+      document.getElementById("nextLevelBtn").style.display = "none";
+      renderHSList();
+      document.getElementById("winOverlay").classList.remove("hidden");
+    }
     document.getElementById("ctrl").style.display = "none";
     sWin();
     for (let i = 0; i < 80; i++) confetti.push({
@@ -676,6 +710,7 @@ const ACH = [
   { id: "flawless", icon: "\u{1F3C5}", name: "Unantastbar", desc: "Ziel ohne Lebenverlust erreicht" },
   { id: "quiz", icon: "\u{1F393}", name: "KI-Profi", desc: "3+ Quizfragen gestellt \u2013 alle richtig" },
   { id: "speed", icon: "\u26A1", name: "Blitzkatze", desc: "Wiese in unter 90 Sekunden" },
+  { id: "boss", icon: "\u{1F5A5}\uFE0F", name: "Legacy besiegt", desc: "Den Endgegner im Serverraum besiegt" },
   { id: "combo", icon: "\u2B50", name: "Kombo-Katze", desc: "5er-Fisch-Kombo geschafft" }
 ];
 function getAch() {
@@ -711,7 +746,8 @@ function getHS() {
 }
 function saveHS(name) {
   const hs = getHS();
-  hs.push({ name: name, score: score + bonus, time: Math.round(runTime * 10) / 10, fish: score, quiz: quizRight, d: new Date().toISOString().slice(0, 10) });
+  hs.push({ name: name, score: totals.score + totals.bonus + score + bonus, time: Math.round(runTime * 10) / 10, fish: totals.fish + score, quiz: totals.qR + quizRight, d: new Date().toISOString().slice(0, 10) });
+
   hs.sort((a, b) => b.score - a.score || a.time - b.time);
   try { localStorage.setItem(hsKey(), JSON.stringify(hs.slice(0, 10))); } catch (e) {}
 }
