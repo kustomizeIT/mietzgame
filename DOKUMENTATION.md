@@ -51,7 +51,8 @@ mietzgame/
 ├── game.template.html  ← QUELLE für index.html (mit __PLATZHALTERN__)
 ├── build.py            ← Generator: baut index.html aus dem Template
 ├── frames.json         ← Sprite-Metadaten (ox/oy/w/h je Frame, Ansatzpunkte)
-├── quiz.json           ← 50 Quizfragen (aus dem Fragenkatalog geparst)
+├── quiz.json           ← 50 Quizfragen (aktuell: v2 "praktisch" vom 24.11.2026,
+│                          Parser-Eingabe: quiz_v2.md; Alte Fassung: quiz_v1_backup.json)
 ├── spr_*.png           ← 23 zugeschnittene Animations-Frames (99 KB gesamt)
 ├── bgm.mp3             ← Hintergrundmusik (1,3 MB, als eigene Datei neben dem Spiel)
 ├── README.md           ← Feature-Übersicht (für Nutzer)
@@ -135,6 +136,11 @@ gh api repos/kustomizeIT/mietzgame/pages/builds/latest --jq '{status,commit}'
 - Git-Tag `v1-stabil` markiert den stabilen Stand vor den Experimenten.
 
 ## 8. Offene Aufgaben / Ideen des Kunden
+
+- [Abgeschlossen 24.11.] Fragenkatalog auf v2 "praktisch" getauscht: 24 Leicht / 26 Mittel /
+  0 Schwer (Schwer bewusst entfernt), 18 Kracher-Tags. Neue Fragen ab F51 einfach in
+  quiz_v2.md fortfuehren und Parser laufen lassen; danach `python3 build.py`.
+  Quelle: SharePoint Booklet-Ordner (ki-quiz-50-fragen-praktisch_v2_2026-11-24.md).
 
 - [GELoEST 15.11.] Der "Serverraum" lief beim Kunden nicht, als er per "?level=2"
   AUTOMATISCH (ohne Nutzereingabe) startete (Katze unsichtbar, Fische flackerten).
